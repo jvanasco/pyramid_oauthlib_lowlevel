@@ -1,0 +1,17 @@
+NotImplementedError
+* oauthlib.oauth2.rfc6749.request_validator.RequestValidator.get_jwt_bearer_token
+* oauthlib.oauth2.rfc6749.request_validator.RequestValidator.validate_jwt_bearer_token
+* oauthlib.oauth2.rfc6749.request_validator.RequestValidator.get_id_token
+* oauthlib.oauth2.rfc6749.request_validator.RequestValidator.validate_id_token
+* oauthlib.oauth2.rfc6749.request_validator.RequestValidator.get_authorization_code_scopes
+
+Docs:
+* make it clear that setting a class var can be used to extend the validity
+	e.g.
+    token_expires_in = 2592000  # 60 * 60 * 24 * 30
+
+Coding:
+* some of the Py3 support regarding string encodings looks wonky.
+
+	`utils.oauth1_to_pyramid_Response` - should utf-8 be the default?  Does the RFC default to iso-8859-1 ?
+	

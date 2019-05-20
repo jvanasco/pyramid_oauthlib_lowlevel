@@ -1,0 +1,18 @@
+tests are within the package
+
+please note: `pyramid_oauthlib_lowlevel.tests.oauth2_app` and  `pyramid_oauthlib_lowlevel.tests.oauth1_app` are both fully functional example oAuth applications. They each implement an Authority Server and Client Application Server.
+
+while there are only 6 tests, each test is an oauth flow, and tests for success and expected failures.
+
+there are some envrionment variables that can help control tests and application usage:
+
+`export PYRAMID_OAUTHLIB_LOWLEVEL__PRINT_ERRORS=1`
+
+	prints an error message when @catch_backend_failure is encountered.
+	an error message is always logged. this just prints the error too.
+
+`export PYRAMID_OAUTHLIB_LOWLEVEL__DEBUG_ROUTE=1`
+`export PYRAMID_OAUTHLIB_LOWLEVEL__DEBUG_USERID=1`
+`export PYRAMID_OAUTHLIB_LOWLEVEL__LOG_ROUTE=1`
+	
+	extra debugging during tests
