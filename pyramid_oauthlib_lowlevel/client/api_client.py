@@ -172,12 +172,18 @@ class ApiClient(object):
             self.client.auth.client.callback_uri = _callback_uri_old
 
         if response.status_code == 401:
-            raise ApiAuthError(response.content,
+            # requests: response.text is the decoded response; .content is raw bytes
+            raise ApiAuthError(response.text,
                                error_code=response.status_code)
         elif response.status_code != 200:
-            raise ApiError(response.content,
+            # requests: response.text is the decoded response; .content is raw bytes
+            raise ApiError(response.text,
                            error_code=response.status_code)
 
+        # requests: response.text is the decoded response; .content is raw bytes
+        # requests/iso-http-spec defaults to latin-1 if no encoding is present
+        # we know this is utf-8 because of the oauth spec
+        # so we force utf-8 here off the .content
         request_tokens = dict(parse_qsl(response.content.decode('utf-8')))
         if not request_tokens:
             raise ApiError('Unable to decode request tokens.')
@@ -233,12 +239,16 @@ class ApiClient(object):
                     content = response.json()
                 except AttributeError:  # pragma: no cover
                     # if unicode detected
-                    content = json.loads(response.content)
+                    content = json.loads(response.text)
             except ValueError:
                 content = {}
 
             raise ApiError(content.get('error', 'Invalid / expired Token'), error_code=response.status_code)
 
+        # requests: response.text is the decoded response; .content is raw bytes
+        # requests/iso-http-spec defaults to latin-1 if no encoding is present
+        # we know this is utf-8 because of the oauth spec
+        # so we force utf-8 here off the .content
         authorized_tokens = dict(parse_qsl(response.content.decode('utf-8')))
         if not authorized_tokens:
             raise ApiError('Unable to decode authorized tokens.')
@@ -264,6 +274,10 @@ class ApiClient(object):
                     request_args[k] = v
         try:
             response = self.client.post(self._url_obtain_token, params=request_args, data=data, auth=basic_auth)
+            # requests: response.text is the decoded response; .content is raw bytes
+            # requests/iso-http-spec defaults to latin-1 if no encoding is present
+            # we know this is utf-8 because of the oauth spec
+            # so we force utf-8 here off the .content
             content = response.content.decode('utf-8')
             try:
                 content = content.json()
