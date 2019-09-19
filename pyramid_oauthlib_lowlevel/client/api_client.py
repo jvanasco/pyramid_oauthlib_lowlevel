@@ -1,4 +1,5 @@
 import logging
+
 log = logging.getLogger(__name__)
 
 # pypi
@@ -17,6 +18,7 @@ class ApiError(Exception):
     msg = None
 
     """Generic error class, catch-all for most issues."""
+
     def __init__(self, msg, error_code=None, retry_after=None):
         self.error_code = error_code
         super(ApiError, self).__init__(msg)
@@ -39,6 +41,7 @@ class ApiClient(object):
 
         https://github.com/ryanmcgrath/twython
     """
+
     _user_agent = "PyramidOAuthlibLowlevel v0"
 
     # override these in a subclass
@@ -46,17 +49,26 @@ class ApiClient(object):
     OAUTH1_SERVER_REQUEST_TOKEN = None
     OAUTH1_SERVER_AUTHENTICATE = None
 
-    OAUTH2_SERVER_AUTH = 'NotImplementedYet'
-    OAUTH2_SERVER_TOKEN = 'NotImplementedYet'
+    OAUTH2_SERVER_AUTH = "NotImplementedYet"
+    OAUTH2_SERVER_TOKEN = "NotImplementedYet"
 
     oauth_version = None
     _url_obtain_token = None
     _url_revoke_token = None
 
-    def __init__(self, app_key=None, app_secret=None, oauth_token=None,
-                 oauth_token_secret=None, access_token=None,
-                 token_type='bearer', oauth_version=1, api_version='v1',
-                 client_args=None, auth_endpoint='authorize'):
+    def __init__(
+        self,
+        app_key=None,
+        app_secret=None,
+        oauth_token=None,
+        oauth_token_secret=None,
+        access_token=None,
+        token_type="bearer",
+        oauth_version=1,
+        api_version="v1",
+        client_args=None,
+        auth_endpoint="authorize",
+    ):
         # API urls, OAuth urls and API version; needed for hitting that there
         # API.
         self.api_version = api_version
@@ -82,14 +94,14 @@ class ApiClient(object):
             self.request_token_url = self.OAUTH2_SERVER_TOKEN
 
         self.client_args = client_args or {}
-        default_headers = {'User-Agent': self._user_agent, }
-        if 'headers' not in self.client_args:
+        default_headers = {"User-Agent": self._user_agent}
+        if "headers" not in self.client_args:
             # If they didn't set any headers, set our defaults for them
-            self.client_args['headers'] = default_headers
-        elif 'User-Agent' not in self.client_args['headers']:
+            self.client_args["headers"] = default_headers
+        elif "User-Agent" not in self.client_args["headers"]:
             # If they set headers, but didn't include User-Agent.. set
             # it for them
-            self.client_args['headers'].update(default_headers)
+            self.client_args["headers"].update(default_headers)
 
         # Generate OAuth authentication object for the request
         # If no keys/tokens are passed to __init__, auth=None allows for
@@ -98,19 +110,29 @@ class ApiClient(object):
         auth = None
         if oauth_version == 1:
             # User Authentication is through OAuth 1
-            if self.app_key is not None and self.app_secret is not None and \
-               self.oauth_token is None and self.oauth_token_secret is None:
+            if (
+                self.app_key is not None
+                and self.app_secret is not None
+                and self.oauth_token is None
+                and self.oauth_token_secret is None
+            ):
                 auth = OAuth1(self.app_key, self.app_secret)
 
-            if self.app_key is not None and self.app_secret is not None and \
-               self.oauth_token is not None and self.oauth_token_secret is \
-               not None:
-                auth = OAuth1(self.app_key, self.app_secret,
-                              self.oauth_token, self.oauth_token_secret)
+            if (
+                self.app_key is not None
+                and self.app_secret is not None
+                and self.oauth_token is not None
+                and self.oauth_token_secret is not None
+            ):
+                auth = OAuth1(
+                    self.app_key,
+                    self.app_secret,
+                    self.oauth_token,
+                    self.oauth_token_secret,
+                )
         elif oauth_version == 2 and self.access_token:
             # Application Authentication is through OAuth 2
-            token = {'token_type': token_type,
-                     'access_token': self.access_token}
+            token = {"token_type": token_type, "access_token": self.access_token}
             auth = OAuth2(self.app_key, token=token)
 
         self.client = requests.Session()
@@ -121,22 +143,24 @@ class ApiClient(object):
         # Never be used again.
         client_args_copy = self.client_args.copy()
         for (k, v) in client_args_copy.items():
-            if k in ('cert', 'hooks', 'max_redirects', 'proxies', 'verify'):
+            if k in ("cert", "hooks", "max_redirects", "proxies", "verify"):
                 setattr(self.client, k, v)
                 self.client_args.pop(k)  # Pop, pop!
 
         # Headers are always present, so we unconditionally pop them and merge
         # them into the session headers.
-        self.client.headers.update(self.client_args.pop('headers'))
+        self.client.headers.update(self.client_args.pop("headers"))
 
         self._last_call = None
 
     def __repr__(self):
-        return '<pyramid_oauthlib_lowlevel.ApiClient: %s>' % (self.app_key)
+        return "<pyramid_oauthlib_lowlevel.ApiClient: %s>" % (self.app_key)
 
     # ------------------------------------------------------------------------------
 
-    def get_authentication_tokens(self, callback_url=None, extra_args=None, force_login=False):
+    def get_authentication_tokens(
+        self, callback_url=None, extra_args=None, force_login=False
+    ):
         """Returns a dict including an authorization URL, ``auth_url``, to
            direct a user to
         :param callback_url: (optional) Url the user is returned to after
@@ -147,8 +171,10 @@ class ApiClient(object):
         :rtype: dict
         """
         if self.oauth_version != 1:
-            raise ApiError('This method can only be called when your \
-                               OAuth version is 1.0.')
+            raise ApiError(
+                "This method can only be called when your \
+                               OAuth version is 1.0."
+            )
 
         # we toggle this in, then fix
         _callback_uri_old = self.client.auth.client.callback_uri
@@ -173,33 +199,32 @@ class ApiClient(object):
 
         if response.status_code == 401:
             # requests: response.text is the decoded response; .content is raw bytes
-            raise ApiAuthError(response.text,
-                               error_code=response.status_code)
+            raise ApiAuthError(response.text, error_code=response.status_code)
         elif response.status_code != 200:
             # requests: response.text is the decoded response; .content is raw bytes
-            raise ApiError(response.text,
-                           error_code=response.status_code)
+            raise ApiError(response.text, error_code=response.status_code)
 
         # requests: response.text is the decoded response; .content is raw bytes
         # requests/iso-http-spec defaults to latin-1 if no encoding is present
         # we know this is utf-8 because of the oauth spec
         # so we force utf-8 here off the .content
-        request_tokens = dict(parse_qsl(response.content.decode('utf-8')))
+        request_tokens = dict(parse_qsl(response.content.decode("utf-8")))
         if not request_tokens:
-            raise ApiError('Unable to decode request tokens.')
+            raise ApiError("Unable to decode request tokens.")
 
-        oauth_callback_confirmed = request_tokens.get('oauth_callback_confirmed') == 'true'
+        oauth_callback_confirmed = (
+            request_tokens.get("oauth_callback_confirmed") == "true"
+        )
 
-        auth_url_params = {
-            'oauth_token': request_tokens['oauth_token'],
-        }
+        auth_url_params = {"oauth_token": request_tokens["oauth_token"]}
 
         # Use old-style callback argument if server didn't accept new-style
         if callback_url and not oauth_callback_confirmed:
-            auth_url_params['oauth_callback'] = self.callback_url
+            auth_url_params["oauth_callback"] = self.callback_url
 
-        request_tokens['auth_url'] = self.authenticate_url + \
-            '?' + urlencode(auth_url_params, True)
+        request_tokens["auth_url"] = (
+            self.authenticate_url + "?" + urlencode(auth_url_params, True)
+        )
 
         return request_tokens
 
@@ -213,7 +238,9 @@ class ApiClient(object):
 
         """
         if self.oauth_version != 1:
-            raise ApiError('This method can only be called when your OAuth version is 1.0.')
+            raise ApiError(
+                "This method can only be called when your OAuth version is 1.0."
+            )
 
         request_args = {}
         if extra_args:
@@ -222,9 +249,11 @@ class ApiClient(object):
                     request_args[k] = v
 
         self.client.auth.client.verifier = oauth_verifier
-        response = self.client.get(self.access_token_url,
-                                   params=request_args,
-                                   headers={'Content-Type': 'application/json'})
+        response = self.client.get(
+            self.access_token_url,
+            params=request_args,
+            headers={"Content-Type": "application/json"},
+        )
         self.client.auth.client.verifier = None
 
         if response.status_code != 200:
@@ -243,15 +272,18 @@ class ApiClient(object):
             except ValueError:
                 content = {}
 
-            raise ApiError(content.get('error', 'Invalid / expired Token'), error_code=response.status_code)
+            raise ApiError(
+                content.get("error", "Invalid / expired Token"),
+                error_code=response.status_code,
+            )
 
         # requests: response.text is the decoded response; .content is raw bytes
         # requests/iso-http-spec defaults to latin-1 if no encoding is present
         # we know this is utf-8 because of the oauth spec
         # so we force utf-8 here off the .content
-        authorized_tokens = dict(parse_qsl(response.content.decode('utf-8')))
+        authorized_tokens = dict(parse_qsl(response.content.decode("utf-8")))
         if not authorized_tokens:
-            raise ApiError('Unable to decode authorized tokens.')
+            raise ApiError("Unable to decode authorized tokens.")
 
         return authorized_tokens  # pragma: no cover
 
@@ -262,9 +294,11 @@ class ApiClient(object):
         :rtype: json
         """
         if self.oauth_version != 2:
-            raise ApiError('This method can only be called when your OAuth version is 2.0.')
+            raise ApiError(
+                "This method can only be called when your OAuth version is 2.0."
+            )
 
-        data = {'grant_type': 'client_credentials'}
+        data = {"grant_type": "client_credentials"}
         basic_auth = HTTPBasicAuth(self.app_key, self.app_secret)
         content = None
         request_args = {}
@@ -273,25 +307,27 @@ class ApiClient(object):
                 if k not in request_args:
                     request_args[k] = v
         try:
-            response = self.client.post(self._url_obtain_token, params=request_args, data=data, auth=basic_auth)
+            response = self.client.post(
+                self._url_obtain_token, params=request_args, data=data, auth=basic_auth
+            )
             # requests: response.text is the decoded response; .content is raw bytes
             # requests/iso-http-spec defaults to latin-1 if no encoding is present
             # we know this is utf-8 because of the oauth spec
             # so we force utf-8 here off the .content
-            content = response.content.decode('utf-8')
+            content = response.content.decode("utf-8")
             try:
                 content = content.json()
             except AttributeError:
                 content = json.loads(content)
 
-            _bearer_token = content['access_token']
-            _token_type = content['token_type']
-            if _token_type != 'Bearer':
+            _bearer_token = content["access_token"]
+            _token_type = content["token_type"]
+            if _token_type != "Bearer":
                 raise ValueError()
 
         except (KeyError, ValueError, requests.exceptions.RequestException) as ex_og:
             log.debug(content)
-            ex = ApiAuthError('Unable to obtain OAuth 2 access token.')
+            ex = ApiAuthError("Unable to obtain OAuth 2 access token.")
             ex.original_exception = ex_og
             ex.original_response = response
             ex.original_content = content
@@ -303,18 +339,24 @@ class ApiClient(object):
 
     def revoke_access_token(self, token=None, token_type_hint=None):
         if self.oauth_version != 2:
-            raise ApiError('This method can only be called when your OAuth version is 2.0.')
+            raise ApiError(
+                "This method can only be called when your OAuth version is 2.0."
+            )
 
-        data = {'token': token, }
+        data = {"token": token}
         if token_type_hint:
-            data['token_type_hint'] = token_type_hint
+            data["token_type_hint"] = token_type_hint
         basic_auth = HTTPBasicAuth(self.app_key, self.app_secret)
         try:
-            response = self.client.post(self._url_revoke_token, data=data, auth=basic_auth)
+            response = self.client.post(
+                self._url_revoke_token, data=data, auth=basic_auth
+            )
             if response.status_code == 200:
-                log.debug('Revoked OAuth 2 Token.')
+                log.debug("Revoked OAuth 2 Token.")
                 return True
-            log.debug('Unable to revoke OAuth 2 Token. Status code: %s' % response.status_code)
+            log.debug(
+                "Unable to revoke OAuth 2 Token. Status code: %s" % response.status_code
+            )
             return False
         except Exception as exc:
-            raise ApiAuthError('Unable to revoke OAuth 2 token. Exception: %s' % exc)
+            raise ApiAuthError("Unable to revoke OAuth 2 token. Exception: %s" % exc)

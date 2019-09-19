@@ -1,4 +1,5 @@
 import logging
+
 log = logging.getLogger(__name__)
 
 # pypi, upstream
@@ -43,7 +44,9 @@ class OAuth1Provider(object):
         self._validator_api_hooks = validator_api_hooks
         self._validator_class = validator_class or OAuth1RequestValidator
 
-        self._validator = self._validator_class(pyramid_request, validator_api_hooks=self._validator_api_hooks)
+        self._validator = self._validator_class(
+            pyramid_request, validator_api_hooks=self._validator_api_hooks
+        )
         self.server = Server(self._validator)
 
     @property
@@ -80,7 +83,9 @@ class OAuth1Provider(object):
         """
         uri, http_method, body, headers = utils.extract_params(self.pyramid_request)
         # resp_headers, token, 200
-        oauth_response = self.server.create_request_token_response(uri, http_method, body, headers, credentials=None)
+        oauth_response = self.server.create_request_token_response(
+            uri, http_method, body, headers, credentials=None
+        )
         if dbSessionCommit:
             dbSessionCommit.commit()
         return utils.oauth1_to_pyramid_Response(oauth_response)
@@ -100,7 +105,9 @@ class OAuth1Provider(object):
         credentials = None
         # resp_headers, token, 200
         # oauth_response = self.server.create_access_token_response(uri, http_method, body, headers, credentials, update_access_token=update_access_token)
-        oauth_response = self.server.create_access_token_response(uri, http_method, body, headers, credentials)
+        oauth_response = self.server.create_access_token_response(
+            uri, http_method, body, headers, credentials
+        )
         if dbSessionCommit:
             dbSessionCommit.commit()
         return utils.oauth1_to_pyramid_Response(oauth_response)
@@ -114,17 +121,16 @@ class OAuth1Provider(object):
             )
         except Exception as exc:
             error = MiscellaneousOAuth1Error(
-                description="Error extracting oAuth1 params",
-                wrapped_exception=exc,
+                description="Error extracting oAuth1 params", wrapped_exception=exc
             )
             raise error
         oauth1_data = {
-            'uri': uri,
-            'http_method': http_method,
-            'body': body,
-            'headers': headers,
-            'realms': realms,
-            'credentials': credentials,
+            "uri": uri,
+            "http_method": http_method,
+            "body": body,
+            "headers": headers,
+            "realms": realms,
+            "credentials": credentials,
         }
         return oauth1_data
 
@@ -136,12 +142,12 @@ class OAuth1Provider(object):
             `oauth1_data` is object from `extract__endpoint_authorize_data`
             dbSessionCommit: if provided, will call `commit()` on this dbSession
         """
-        uri = oauth1_data['uri']
-        http_method = oauth1_data['http_method']
-        body = oauth1_data['body']
-        headers = oauth1_data['headers']
-        realms = oauth1_data['realms']
-        credentials = oauth1_data['credentials']
+        uri = oauth1_data["uri"]
+        http_method = oauth1_data["http_method"]
+        body = oauth1_data["body"]
+        headers = oauth1_data["headers"]
+        realms = oauth1_data["realms"]
+        credentials = oauth1_data["credentials"]
 
         # resp_headers/redirect, None, 302
         oauth_response = self.server.create_authorization_response(
@@ -162,7 +168,7 @@ class OAuth1Provider(object):
             oauth1Provider = new_oauth1Provider(request)
             _is_authorized, req = oauth1Provider.logic__is_authorized(['platform.actor', ])
             if not _is_authorized:
-                raise pyramid.exceptions.HTTPUnauthorized(body="""'{"error": "Not Authorized (oAuth Failed)}'""", content_type='application/json')
+                raise pyramid.exceptions.HTTPUnauthorized(body=""" '{"error": "Not Authorized (oAuth Failed)}' """, content_type='application/json')
             request.api_client_info.register__oAuth_developerApp_accessToken(req.client, req.access_token)
             return _is_authorized
         """

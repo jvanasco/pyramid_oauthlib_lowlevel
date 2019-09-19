@@ -1,4 +1,8 @@
+0.2.2dev
+	black
+
 0.2.1
 	small changes to the api client regarding content decoding
+
 0.2.0
 	public release

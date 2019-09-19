@@ -12,7 +12,7 @@ from ... import oauth1_model
 configure_mappers()
 
 
-def _get_engine(settings, prefix='sqlalchemy.'):
+def _get_engine(settings, prefix="sqlalchemy."):
     # leading underscore, because this can return different engines
     return engine_from_config(settings, prefix)
 
@@ -44,11 +44,15 @@ def get_tm_session(request, session_factory, transaction_manager):
               dbsession = get_tm_session(request, session_factory, transaction.manager)
     """
     dbSession = session_factory()
-    zope.sqlalchemy.register(dbSession, transaction_manager=transaction_manager, keep_session=True)
+    zope.sqlalchemy.register(
+        dbSession, transaction_manager=transaction_manager, keep_session=True
+    )
 
     if request is not None:
+
         def _cleanup(request):
             dbSession.close()
+
         request.add_finished_callback(_cleanup)
 
     return dbSession
@@ -64,20 +68,20 @@ def includeme(config):
     settings = config.get_settings()
 
     # use pyramid_tm to hook the transaction lifecycle to the request
-    config.include('pyramid_tm')
+    config.include("pyramid_tm")
 
     # call this once, so we create the same sqlalchemy engine
     _engine = _get_engine(settings)
 
     session_factory = get_session_factory(_engine)
-    config.registry['dbSession_factory'] = session_factory
+    config.registry["dbSession_factory"] = session_factory
 
     # make request.dbSession available for use in Pyramid
     config.add_request_method(
         # r.tm is the transaction manager used by pyramid_tm
         lambda r: get_tm_session(r, session_factory, r.tm),
-        'dbSession',
-        reify=True
+        "dbSession",
+        reify=True,
     )
 
     # setup

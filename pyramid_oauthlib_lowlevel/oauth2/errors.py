@@ -1,4 +1,5 @@
 import logging
+
 log = logging.getLogger(__name__)
 
 # stdlib
@@ -15,7 +16,8 @@ class MiscellaneousOAuth2Error(OAuth2Error):
     """
     this extends the OAuth2Error class with a `wrapped_exception`
     """
-    error = 'oauth2_error'
+
+    error = "oauth2_error"
     wrapped_exception = None
 
     def __init__(

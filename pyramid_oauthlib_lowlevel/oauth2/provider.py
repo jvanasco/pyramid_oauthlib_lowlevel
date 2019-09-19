@@ -1,4 +1,5 @@
 import logging
+
 log = logging.getLogger(__name__)
 
 # stdlib
@@ -45,7 +46,7 @@ class OAuth2Provider(object):
     server = None  # Server instance
 
     # misc
-    error_uri = '/error'
+    error_uri = "/error"
     confirm_authorization_request__post_only = False
 
     def __init__(
@@ -74,20 +75,22 @@ class OAuth2Provider(object):
         if error_uri:
             self.error_uri = error_uri
 
-        self._validator = validator = self._validator_class(pyramid_request, validator_api_hooks=self._validator_api_hooks)
+        self._validator = validator = self._validator_class(
+            pyramid_request, validator_api_hooks=self._validator_api_hooks
+        )
         self.server = server_class(
             validator,
-            token_expires_in = validator.token_expires_in,
-            token_generator = validator.token_generator,
-            refresh_token_generator = validator.refresh_token_generator,
+            token_expires_in=validator.token_expires_in,
+            token_generator=validator.token_generator,
+            refresh_token_generator=validator.refresh_token_generator,
         )
 
     def _protected_https_only(self):
-        if self.pyramid_request.scheme != 'https':
+        if self.pyramid_request.scheme != "https":
             raise HTTPBadRequest("Only `HTTPS` connections are accepted.")
 
     def _protected_post_only(self):
-        if self.pyramid_request.method != 'POST':
+        if self.pyramid_request.method != "POST":
             raise HTTPBadRequest("Only `POST` is accepted.")
 
     def endpoint__validate_authorization_request(self):
@@ -118,30 +121,49 @@ class OAuth2Provider(object):
         uri, http_method, body, headers = extract_params(self.pyramid_request)
 
         validity = {}
-        if http_method in ('GET', 'HEAD'):
-            redirect_uri = self.pyramid_request.params.get('redirect_uri', self.error_uri)
-            log.debug('endpoint__validate_authorization_request GET:HEAD| Found redirect_uri %s.', redirect_uri)
+        if http_method in ("GET", "HEAD"):
+            redirect_uri = self.pyramid_request.params.get(
+                "redirect_uri", self.error_uri
+            )
+            log.debug(
+                "endpoint__validate_authorization_request GET:HEAD| Found redirect_uri %s.",
+                redirect_uri,
+            )
             try:
-                ret = self.server.validate_authorization_request(uri, http_method, body, headers)
+                ret = self.server.validate_authorization_request(
+                    uri, http_method, body, headers
+                )
                 scopes, credentials = ret
-                validity['scopes'] = scopes
+                validity["scopes"] = scopes
                 validity.update(credentials)
 
             except oauth2.FatalClientError as exc:
-                log.debug('endpoint__validate_authorization_request GET:HEAD | Fatal client error %r', exc, exc_info=True)
+                log.debug(
+                    "endpoint__validate_authorization_request GET:HEAD | Fatal client error %r",
+                    exc,
+                    exc_info=True,
+                )
                 raise HTTPFound(exc.in_uri(self.error_uri))
 
             except oauth2.OAuth2Error as exc:
-                log.debug('endpoint__validate_authorization_request GET:HEAD | OAuth2Error: %r', exc, exc_info=True)
+                log.debug(
+                    "endpoint__validate_authorization_request GET:HEAD | OAuth2Error: %r",
+                    exc,
+                    exc_info=True,
+                )
                 raise HTTPFound(exc.in_uri(redirect_uri))
 
             except Exception as exc:
-                log.critical('endpoint__validate_authorization_request GET:HEAD | %s', exc)
-                raise HTTPFound(add_params_to_uri(self.error_uri, {'error': str(exc)}))
+                log.critical(
+                    "endpoint__validate_authorization_request GET:HEAD | %s", exc
+                )
+                raise HTTPFound(add_params_to_uri(self.error_uri, {"error": str(exc)}))
 
             return validity
         else:
-            raise HTTPFound(add_params_to_uri(self.error_uri, {'error': 'request must be GET'}))
+            raise HTTPFound(
+                add_params_to_uri(self.error_uri, {"error": "request must be GET"})
+            )
 
     def endpoint__confirm_authorization_request(self):
         """
@@ -156,32 +178,33 @@ class OAuth2Provider(object):
         if self.confirm_authorization_request__post_only:
             params_source = self.pyramid_request.POST
 
-        scope = params_source.get('scope') or ''
+        scope = params_source.get("scope") or ""
         scopes = scope.split()
         credentials = dict(
-            client_id=params_source.get('client_id'),
-            redirect_uri=params_source.get('redirect_uri', None),
-            response_type=params_source.get('response_type', None),
-            state=params_source.get('state', None)
+            client_id=params_source.get("client_id"),
+            redirect_uri=params_source.get("redirect_uri", None),
+            response_type=params_source.get("response_type", None),
+            state=params_source.get("state", None),
         )
-        log.debug('Fetched credentials from request %r.', credentials)
-        redirect_uri = credentials.get('redirect_uri')
-        log.debug('Found redirect_uri %s.', redirect_uri)
+        log.debug("Fetched credentials from request %r.", credentials)
+        redirect_uri = credentials.get("redirect_uri")
+        log.debug("Found redirect_uri %s.", redirect_uri)
 
         uri, http_method, body, headers = extract_params(self.pyramid_request)
         try:
             ret = self.server.create_authorization_response(
-                uri, http_method, body, headers, scopes, credentials)
-            log.debug('Authorization successful.')
+                uri, http_method, body, headers, scopes, credentials
+            )
+            log.debug("Authorization successful.")
             return create_response(*ret)
 
         except oauth2.FatalClientError as exc:
-            log.debug('Fatal client error %r', exc, exc_info=True)
+            log.debug("Fatal client error %r", exc, exc_info=True)
             # return redirect(exc.in_uri(self.error_uri))
             return HTTPSeeOther(exc.in_uri(self.error_uri))
 
         except oauth2.OAuth2Error as exc:
-            log.debug('OAuth2Error: %r', exc, exc_info=True)
+            log.debug("OAuth2Error: %r", exc, exc_info=True)
             # return redirect(exc.in_uri(redirect_uri or self.error_uri))
             return HTTPSeeOther(exc.in_uri(redirect_uri or self.error_uri))
 
@@ -190,7 +213,7 @@ class OAuth2Provider(object):
             # return redirect(add_params_to_uri(
             #    self.error_uri, {'error': str(exc)}
             # ))
-            return HTTPSeeOther(add_params_to_uri(self.error_uri, {'error': str(exc)}))
+            return HTTPSeeOther(add_params_to_uri(self.error_uri, {"error": str(exc)}))
 
     def endopoint__token(self, credentials=None):
         """
@@ -201,13 +224,15 @@ class OAuth2Provider(object):
 
         uri, http_method, body, headers = extract_params(self.pyramid_request)
         try:
-            ret = self.server.create_token_response(uri, http_method, body, headers, credentials)
-            log.debug('Authorization successful.')
+            ret = self.server.create_token_response(
+                uri, http_method, body, headers, credentials
+            )
+            log.debug("Authorization successful.")
             return create_response(*ret)
         except Exception as exc:
             print("Exception", exc)
             log.critical(exc)
-            return HTTPSeeOther(add_params_to_uri(self.error_uri, {'error': str(exc)}))
+            return HTTPSeeOther(add_params_to_uri(self.error_uri, {"error": str(exc)}))
 
     def endpoint__revoke_token(self):
         """
@@ -218,13 +243,15 @@ class OAuth2Provider(object):
 
         uri, http_method, body, headers = extract_params(self.pyramid_request)
         try:
-            ret = self.server.create_revocation_response(uri, http_method, body, headers)
-            log.debug('Revocation successful.')
+            ret = self.server.create_revocation_response(
+                uri, http_method, body, headers
+            )
+            log.debug("Revocation successful.")
             return create_response(*ret)
         except Exception as exc:
             print("Exception", exc)
             log.critical(exc)
-            return HTTPSeeOther(add_params_to_uri(self.error_uri, {'error': str(exc)}))
+            return HTTPSeeOther(add_params_to_uri(self.error_uri, {"error": str(exc)}))
 
     def verify_request(self, scopes):
         """

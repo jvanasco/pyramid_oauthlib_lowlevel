@@ -10,17 +10,29 @@ import datetime
 
 
 # we'll use these in a few places...
-OAUTH1__APP_KEY = 'OAUTH1APPKEYOAUTH1APPKEYOAUTH1APPKEYOAUTH1APPKEY'
-OAUTH1__APP_SECRET = 'OAUTH1__APP_SECRET'
+OAUTH1__APP_KEY = "OAUTH1APPKEYOAUTH1APPKEYOAUTH1APPKEYOAUTH1APPKEY"
+OAUTH1__APP_SECRET = "OAUTH1__APP_SECRET"
 OAUTH1__APP_ID = 99
-OAUTH1__APP_NAME = 'example-app'
-OAUTH1__URL_APP_FLOW_REGISTER = 'https://app.example.com/application/flow-register'
-OAUTH1__URL_APP_FLOW_REGISTER_OAUTH_START = 'https://app.example.com/application/flow-register/oauth/start'
-OAUTH1__URL_APP_FLOW_REGISTER_CALLBACK = 'https://app.example.com/application/flow-register/authorized-callback'
-OAUTH1__URL_APP_FLOW_REGISTER_CALLBACK_SUCCESS = 'https://app.example.com/application/flow-register/authorized-callback-success'
-OAUTH1__URL_AUTHORITY_AUTHENTICATE = 'https://authority.example.com/authority/oauth1/authorize'
-OAUTH1__URL_AUTHORITY_ACCESS_TOKEN = 'https://authority.example.com/authority/oauth1/access_token'
-OAUTH1__URL_AUTHORITY_REQUEST_TOKEN = 'https://authority.example.com/authority/oauth1/request_token'
+OAUTH1__APP_NAME = "example-app"
+OAUTH1__URL_APP_FLOW_REGISTER = "https://app.example.com/application/flow-register"
+OAUTH1__URL_APP_FLOW_REGISTER_OAUTH_START = (
+    "https://app.example.com/application/flow-register/oauth/start"
+)
+OAUTH1__URL_APP_FLOW_REGISTER_CALLBACK = (
+    "https://app.example.com/application/flow-register/authorized-callback"
+)
+OAUTH1__URL_APP_FLOW_REGISTER_CALLBACK_SUCCESS = (
+    "https://app.example.com/application/flow-register/authorized-callback-success"
+)
+OAUTH1__URL_AUTHORITY_AUTHENTICATE = (
+    "https://authority.example.com/authority/oauth1/authorize"
+)
+OAUTH1__URL_AUTHORITY_ACCESS_TOKEN = (
+    "https://authority.example.com/authority/oauth1/access_token"
+)
+OAUTH1__URL_AUTHORITY_REQUEST_TOKEN = (
+    "https://authority.example.com/authority/oauth1/request_token"
+)
 
 
 USERID_ACTIVE__APPLICATION = 47
@@ -39,7 +51,7 @@ Base = declarative_base()
 
 
 class Useraccount(Base):
-    __tablename__ = 'useraccount'
+    __tablename__ = "useraccount"
     id = sa.Column(sa.Integer, primary_key=True)
 
 
@@ -59,10 +71,13 @@ class DeveloperApplication(Base):
         validate_realms: A function to validate realms
 
     """
-    __tablename__ = 'developer_application'
+
+    __tablename__ = "developer_application"
     id = sa.Column(sa.Integer, primary_key=True)
     is_active = sa.Column(sa.Boolean, nullable=True, default=True)
-    useraccount_id__owner = sa.Column(sa.Integer, sa.ForeignKey("useraccount.id"), nullable=True)
+    useraccount_id__owner = sa.Column(
+        sa.Integer, sa.ForeignKey("useraccount.id"), nullable=True
+    )
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
     app_name_unique = sa.Column(sa.Unicode(32), nullable=False)
     app_description = sa.Column(sa.Unicode(200), nullable=False)
@@ -96,7 +111,7 @@ class DeveloperApplication(Base):
     @property
     def redirect_uris(self):
         """compatibility with `OAuth1Server_Client`"""
-        return [self.callback_url, ]
+        return [self.callback_url]
 
     @property
     def default_redirect_uri(self):
@@ -108,16 +123,18 @@ class DeveloperApplication(Base):
         """compatibility with `OAuth1Server_Client`
         oauthlib wants to READONLY an array of realms, the db wants a string,"""
         if self.app_scope:
-            return self.app_scope.split(' ')
-        return ['platform.actor', ]
+            return self.app_scope.split(" ")
+        return ["platform.actor"]
 
     # def validate_realms(self, ??): a function to validate realms
 
 
 class DeveloperApplication_Keyset(Base):
-    __tablename__ = 'developer_application_keyset'
+    __tablename__ = "developer_application_keyset"
     id = sa.Column(sa.Integer, primary_key=True)
-    developer_application_id = sa.Column(sa.Integer, sa.ForeignKey("developer_application.id"), nullable=False)
+    developer_application_id = sa.Column(
+        sa.Integer, sa.ForeignKey("developer_application.id"), nullable=False
+    )
     is_active = sa.Column(sa.Boolean, nullable=True, default=True)
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
     timestamp_deactivated = sa.Column(sa.DateTime, nullable=True)
@@ -150,17 +167,22 @@ class Developer_oAuth1Server_TokenRequest(Base):
             verifier: A random string for verifier
             user: The current user
     """
-    __tablename__ = 'developer__oauth1_server__token_request'
+
+    __tablename__ = "developer__oauth1_server__token_request"
     id = sa.Column(sa.Integer, primary_key=True)
-    developer_application_id = sa.Column(sa.Integer, sa.ForeignKey("developer_application.id"), nullable=False)
-    useraccount_id = sa.Column(sa.Integer, sa.ForeignKey("useraccount.id"), nullable=True)
+    developer_application_id = sa.Column(
+        sa.Integer, sa.ForeignKey("developer_application.id"), nullable=False
+    )
+    useraccount_id = sa.Column(
+        sa.Integer, sa.ForeignKey("useraccount.id"), nullable=True
+    )
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
     timestamp_expires = sa.Column(sa.DateTime, nullable=True)
     _realms = sa.Column(sa.Unicode(255), nullable=False)
     oauth_token = sa.Column(sa.Unicode(1000), nullable=False)
     oauth_token_secret = sa.Column(sa.Unicode(1000), nullable=False)
     oauth_verifier = sa.Column(sa.Unicode(1000), nullable=True)
-    oauth_version = sa.Column(sa.Unicode(5), nullable=False, default=u'1')
+    oauth_version = sa.Column(sa.Unicode(5), nullable=False, default=u"1")
     redirect_uri = sa.Column(sa.Unicode(255), nullable=False)
     oauth_callback_confirmed = sa.Column(sa.Unicode(1000), nullable=False)
     is_rejected = sa.Column(sa.Boolean, nullable=True, default=None)
@@ -182,7 +204,7 @@ class Developer_oAuth1Server_TokenRequest(Base):
     @property
     def realms(self):
         """oauthlib wants to READONLY an array of realms, the db wants a string"""
-        return self._realms.split(' ')
+        return self._realms.split(" ")
 
     @property
     def client_key(self):
@@ -218,11 +240,14 @@ class Developer_oAuth1Server_Nonce(Base):
 
         The timelife of a timestamp and nonce is 60 senconds, put it in a cache please.
     """
-    __tablename__ = 'developer__oauth1_server__nonce'
+
+    __tablename__ = "developer__oauth1_server__nonce"
     id = sa.Column(sa.Integer, primary_key=True)
     timestamp_created = sa.Column(sa.Integer, nullable=False)
     nonce = sa.Column(sa.Unicode(40), nullable=False)
-    developer_application_id = sa.Column(sa.Integer, sa.ForeignKey("developer_application.id"), nullable=False)
+    developer_application_id = sa.Column(
+        sa.Integer, sa.ForeignKey("developer_application.id"), nullable=False
+    )
     request_token = sa.Column(sa.Unicode(64), nullable=True)
     access_token = sa.Column(sa.Unicode(64), nullable=True)
 
@@ -259,16 +284,21 @@ class Developer_oAuth1Server_TokenAccess(Base):
             secret: Access token secret
             realms: Realms with this access token
     """
-    __tablename__ = 'developer__oauth1_server__token_access'
+
+    __tablename__ = "developer__oauth1_server__token_access"
     id = sa.Column(sa.Integer, primary_key=True)
     oauth_token = sa.Column(sa.Unicode(1000), nullable=False)
     oauth_token_secret = sa.Column(sa.Unicode(1000), nullable=False)
     _realms = sa.Column(sa.Unicode(255), nullable=False)
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    token_type = sa.Column(sa.Unicode(32), nullable=False, default=u'bearer',)
-    developer_application_id = sa.Column(sa.Integer, sa.ForeignKey("developer_application.id"), nullable=False)
-    useraccount_id = sa.Column(sa.Integer, sa.ForeignKey("useraccount.id"), nullable=False)
-    oauth_version = sa.Column(sa.Unicode(5), nullable=False, default=u'1')
+    token_type = sa.Column(sa.Unicode(32), nullable=False, default=u"bearer")
+    developer_application_id = sa.Column(
+        sa.Integer, sa.ForeignKey("developer_application.id"), nullable=False
+    )
+    useraccount_id = sa.Column(
+        sa.Integer, sa.ForeignKey("useraccount.id"), nullable=False
+    )
+    oauth_version = sa.Column(sa.Unicode(5), nullable=False, default=u"1")
     timestamp_expired = sa.Column(sa.Integer, nullable=True)
     is_active = sa.Column(sa.Boolean, nullable=True, default=True)
 
@@ -297,31 +327,36 @@ class Developer_oAuth1Server_TokenAccess(Base):
     @property
     def realms(self):
         """oauthlib wants a list"""
-        return self._realms.split(' ')
+        return self._realms.split(" ")
 
 
 class Developer_oAuth1Client_TokenAccess(Base):
     """
     The client (example application) needs to save the access token for communicating with the server
     """
-    __tablename__ = 'developer__oauth1_client__token_access'
+
+    __tablename__ = "developer__oauth1_client__token_access"
     id = sa.Column(sa.Integer, primary_key=True)
-    developer_application_id = sa.Column(sa.Integer, sa.ForeignKey("developer_application.id"), nullable=False)
-    useraccount_id = sa.Column(sa.Integer, sa.ForeignKey("useraccount.id"), nullable=False)
+    developer_application_id = sa.Column(
+        sa.Integer, sa.ForeignKey("developer_application.id"), nullable=False
+    )
+    useraccount_id = sa.Column(
+        sa.Integer, sa.ForeignKey("useraccount.id"), nullable=False
+    )
 
     oauth_token = sa.Column(sa.Unicode(1000), nullable=False)
     oauth_token_secret = sa.Column(sa.Unicode(1000), nullable=False)
     _realms = sa.Column(sa.Unicode(255), nullable=False)
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    token_type = sa.Column(sa.Unicode(32), nullable=False, default=u'bearer',)
-    oauth_version = sa.Column(sa.Unicode(5), nullable=False, default=u'1')
+    token_type = sa.Column(sa.Unicode(32), nullable=False, default=u"bearer")
+    oauth_version = sa.Column(sa.Unicode(5), nullable=False, default=u"1")
     timestamp_expired = sa.Column(sa.Integer, nullable=True)
     is_active = sa.Column(sa.Boolean, nullable=True, default=True)
 
     @property
     def realms(self):
         """oauthlib wants to READONLY an array of realms, the db wants a string"""
-        return self._realms.split(' ')
+        return self._realms.split(" ")
 
 
 def initialize(engine, session):
@@ -340,8 +375,8 @@ def initialize(engine, session):
     app.is_active = True
     app.app_name_unique = OAUTH1__APP_NAME
     app.timestamp_created = datetime.datetime.utcnow()
-    app.app_description = 'description'
-    app.app_website = 'https://example.com'
+    app.app_description = "description"
+    app.app_website = "https://example.com"
     app.app_scope = None
     app.callback_url = OAUTH1__URL_APP_FLOW_REGISTER_CALLBACK
     session.add(app)

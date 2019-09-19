@@ -9,6 +9,7 @@ class FakeRegistry(object):
     """
     fake object for FakeRequest
     """
+
     settings = None
 
 
@@ -17,6 +18,7 @@ class FakeRequest(object):
     fake object, needs FakeAppMeta
     current version
     """
+
     _method = None
     _post = None
     dbSession = None
@@ -35,7 +37,7 @@ class FakeRequest(object):
 
     @property
     def method(self):
-        return self._method or 'GET'
+        return self._method or "GET"
 
     @property
     def POST(self):
@@ -43,11 +45,11 @@ class FakeRequest(object):
 
 
 def parse_request_simple(req):
-    if '?' in req.url:
-        _path, _qs = req.url.split('?')
+    if "?" in req.url:
+        _path, _qs = req.url.split("?")
     else:
         _path = req.url
-        _qs = ''
+        _qs = ""
     return (_path, _qs)
 
 
@@ -63,6 +65,7 @@ class IsolatedTestapp(object):
         ``cookiejar_original`` original cookiejar for testapp. It will be replaced on exit.
         ``cookiejar_local`` local cookiejar to context manager.
     """
+
     testapp = None
     cookiejar_original = None
     cookiejar_local = None
@@ -77,7 +80,9 @@ class IsolatedTestapp(object):
         self.testapp = testapp
         self.cookiejar_original = testapp.cookiejar
         if cookiejar is None:
-            cookiejar = webtest.app.http_cookiejar.CookieJar(policy=webtest.app.CookiePolicy())
+            cookiejar = webtest.app.http_cookiejar.CookieJar(
+                policy=webtest.app.CookiePolicy()
+            )
         self.cookiejar_local = testapp.cookiejar = cookiejar
 
     def __enter__(self):

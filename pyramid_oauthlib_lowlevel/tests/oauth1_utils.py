@@ -67,7 +67,7 @@ class CustomValidator(OAuth1RequestValidator):
 
     @property
     def realms(self):
-        return ['platform.actor', ]
+        return ["platform.actor"]
 
 
 # ------------------------------------------------------------------------------
@@ -84,11 +84,14 @@ class CustomValidator_Hooks(OAuth1RequestValidator_Hooks):
         :param verifier: The verifier string.
         :param request: An oauthlib.common.Request object.
         """
-        verifierObject = self.pyramid_request.dbSession.query(Developer_oAuth1Server_TokenRequest)\
-            .filter(Developer_oAuth1Server_TokenRequest.oauth_verifier == verifier,
-                    Developer_oAuth1Server_TokenRequest.is_active == True,  # noqa
-                    )\
+        verifierObject = (
+            self.pyramid_request.dbSession.query(Developer_oAuth1Server_TokenRequest)
+            .filter(
+                Developer_oAuth1Server_TokenRequest.oauth_verifier == verifier,
+                Developer_oAuth1Server_TokenRequest.is_active == True,  # noqa
+            )
             .first()
+        )
         return verifierObject
 
     @catch_backend_failure
@@ -97,11 +100,14 @@ class CustomValidator_Hooks(OAuth1RequestValidator_Hooks):
         :param token: The token string.
         :param request: An oauthlib.common.Request object.
         """
-        tokenObject = self.pyramid_request.dbSession.query(Developer_oAuth1Server_TokenRequest)\
-            .filter(Developer_oAuth1Server_TokenRequest.oauth_token == token,
-                    Developer_oAuth1Server_TokenRequest.is_active == True,  # noqa
-                    )\
+        tokenObject = (
+            self.pyramid_request.dbSession.query(Developer_oAuth1Server_TokenRequest)
+            .filter(
+                Developer_oAuth1Server_TokenRequest.oauth_token == token,
+                Developer_oAuth1Server_TokenRequest.is_active == True,  # noqa
+            )
             .first()
+        )
         return tokenObject
 
     @catch_backend_failure
@@ -110,10 +116,11 @@ class CustomValidator_Hooks(OAuth1RequestValidator_Hooks):
         :param nonce: The nonce string.
         :param request: An oauthlib.common.Request object.
         """
-        nonceObject = self.pyramid_request.dbSession.query(Developer_oAuth1Server_Nonce)\
-            .filter(Developer_oAuth1Server_Nonce.nonce == nonce,
-                    )\
+        nonceObject = (
+            self.pyramid_request.dbSession.query(Developer_oAuth1Server_Nonce)
+            .filter(Developer_oAuth1Server_Nonce.nonce == nonce)
             .first()
+        )
         return nonceObject
 
     #
@@ -131,15 +138,20 @@ class CustomValidator_Hooks(OAuth1RequestValidator_Hooks):
 
             client_key = u'ExampleApp'
         """
-        clientObject = self.pyramid_request.dbSession.query(DeveloperApplication)\
-            .join(DeveloperApplication_Keyset,
-                  DeveloperApplication.id == DeveloperApplication_Keyset.developer_application_id
-                  )\
-            .filter(DeveloperApplication_Keyset.consumer_key == client_key,
-                    DeveloperApplication_Keyset.is_active == True,  # noqa
-                    )\
-            .options(sqlalchemy.orm.contains_eager('app_keyset_active'))\
+        clientObject = (
+            self.pyramid_request.dbSession.query(DeveloperApplication)
+            .join(
+                DeveloperApplication_Keyset,
+                DeveloperApplication.id
+                == DeveloperApplication_Keyset.developer_application_id,
+            )
+            .filter(
+                DeveloperApplication_Keyset.consumer_key == client_key,
+                DeveloperApplication_Keyset.is_active == True,  # noqa
+            )
+            .options(sqlalchemy.orm.contains_eager("app_keyset_active"))
             .first()
+        )
         # if not clientObject:
         #    raise oauthlib_oauth1_errors.InvalidClientError("Invalid Client")
         return clientObject
@@ -148,7 +160,7 @@ class CustomValidator_Hooks(OAuth1RequestValidator_Hooks):
     # access token getter and setter
     #
     @catch_backend_failure
-    def access_token_getter(self, client_key=None, token=None,):
+    def access_token_getter(self, client_key=None, token=None):
         """
         :param client_key: The client/consumer key.
         :param token: The access token string.
@@ -156,11 +168,15 @@ class CustomValidator_Hooks(OAuth1RequestValidator_Hooks):
         returns `docs.oauth1.object_interfaces.AccessToken()`
         """
         clientObject = self.client_getter(client_key=client_key)
-        tokenObject = self.pyramid_request.dbSession.query(Developer_oAuth1Server_TokenAccess)\
-            .filter(Developer_oAuth1Server_TokenAccess.developer_application_id == clientObject.id,
-                    Developer_oAuth1Server_TokenAccess.is_active == True,  # noqa
-                    )\
+        tokenObject = (
+            self.pyramid_request.dbSession.query(Developer_oAuth1Server_TokenAccess)
+            .filter(
+                Developer_oAuth1Server_TokenAccess.developer_application_id
+                == clientObject.id,
+                Developer_oAuth1Server_TokenAccess.is_active == True,  # noqa
+            )
             .first()
+        )
         return tokenObject
 
     @catch_backend_failure
@@ -187,30 +203,37 @@ class CustomValidator_Hooks(OAuth1RequestValidator_Hooks):
             * ``request.oauth_params['oauth_verifier']``
             * ``request.oauth_params['oauth_token']``
         """
-        verifierObject = self._get_TokenRequest_by_verifier(request.verifier, request=request)
+        verifierObject = self._get_TokenRequest_by_verifier(
+            request.verifier, request=request
+        )
         if not verifierObject:
             # we always have a verifier!
             raise ApiPermissionsError("Invalid Verifier")
 
         # do we have an existing token?
-        existingToken = self.pyramid_request.dbSession.query(Developer_oAuth1Server_TokenAccess)\
-            .filter(Developer_oAuth1Server_TokenAccess.developer_application_id == verifierObject.developer_application_id,
-                    Developer_oAuth1Server_TokenAccess.useraccount_id == verifierObject.useraccount_id,
-                    Developer_oAuth1Server_TokenAccess.is_active == True,  # noqa
-                    )\
+        existingToken = (
+            self.pyramid_request.dbSession.query(Developer_oAuth1Server_TokenAccess)
+            .filter(
+                Developer_oAuth1Server_TokenAccess.developer_application_id
+                == verifierObject.developer_application_id,
+                Developer_oAuth1Server_TokenAccess.useraccount_id
+                == verifierObject.useraccount_id,
+                Developer_oAuth1Server_TokenAccess.is_active == True,  # noqa
+            )
             .first()
+        )
         if existingToken:
             # revoke it!
             pass
 
         tokenObject = Developer_oAuth1Server_TokenAccess()
-        tokenObject.oauth_token = token['oauth_token']
-        tokenObject.oauth_token_secret = token['oauth_token_secret']
-        tokenObject._realms = token['oauth_authorized_realms']
+        tokenObject.oauth_token = token["oauth_token"]
+        tokenObject.oauth_token_secret = token["oauth_token_secret"]
+        tokenObject._realms = token["oauth_authorized_realms"]
         tokenObject.timestamp_created = self.pyramid_request.datetime
         tokenObject.developer_application_id = request.client.id
         tokenObject.useraccount_id = verifierObject.useraccount_id
-        tokenObject.oauth_version = '1'
+        tokenObject.oauth_version = "1"
         tokenObject.is_active = True
 
         self.pyramid_request.dbSession.add(tokenObject)
@@ -262,13 +285,15 @@ class CustomValidator_Hooks(OAuth1RequestValidator_Hooks):
         tokenObject = Developer_oAuth1Server_TokenRequest()
         tokenObject.developer_application_id = request.client.id
         tokenObject.timestamp_created = self.pyramid_request.datetime
-        tokenObject.timestamp_expires = self.pyramid_request.datetime + datetime.timedelta(seconds=100)
-        tokenObject._realms = ' '.join(request.realms)
+        tokenObject.timestamp_expires = (
+            self.pyramid_request.datetime + datetime.timedelta(seconds=100)
+        )
+        tokenObject._realms = " ".join(request.realms)
         tokenObject.redirect_uri = request.redirect_uri
-        tokenObject.oauth_token = token['oauth_token']
-        tokenObject.oauth_token_secret = token['oauth_token_secret']
-        tokenObject.oauth_callback_confirmed = token['oauth_callback_confirmed']
-        tokenObject.oauth_version = '1'
+        tokenObject.oauth_token = token["oauth_token"]
+        tokenObject.oauth_token_secret = token["oauth_token_secret"]
+        tokenObject.oauth_callback_confirmed = token["oauth_callback_confirmed"]
+        tokenObject.oauth_version = "1"
         tokenObject.is_active = True
         self.pyramid_request.dbSession.add(tokenObject)
         self.pyramid_request.dbSession.flush()
@@ -298,7 +323,15 @@ class CustomValidator_Hooks(OAuth1RequestValidator_Hooks):
     # nonce and timestamp
     #
     @catch_backend_failure
-    def nonce_getter(self, client_key=None, timestamp=None, nonce=None, request_token=None, access_token=None, request=None):
+    def nonce_getter(
+        self,
+        client_key=None,
+        timestamp=None,
+        nonce=None,
+        request_token=None,
+        access_token=None,
+        request=None,
+    ):
         """A nonce and timestamp make each request unique.
 
         :param client_key: The client/consure key
@@ -322,7 +355,15 @@ class CustomValidator_Hooks(OAuth1RequestValidator_Hooks):
         return bool(nonceObject)
 
     @catch_backend_failure
-    def nonce_setter(self, client_key=None, timestamp=None, nonce=None, request_token=None, access_token=None, request=None):
+    def nonce_setter(
+        self,
+        client_key=None,
+        timestamp=None,
+        nonce=None,
+        request_token=None,
+        access_token=None,
+        request=None,
+    ):
         """The timestamp will be expired in 60s, it would be a better design
         if you put timestamp and nonce object in a cache.
 
@@ -387,7 +428,7 @@ class CustomValidator_Hooks(OAuth1RequestValidator_Hooks):
         if not tokenObject:
             # we always have a tokenObject!
             raise ApiPermissionsError("Invalid Token")
-        tokenObject.oauth_verifier = verifier['oauth_verifier']
+        tokenObject.oauth_verifier = verifier["oauth_verifier"]
         tokenObject.useraccount_id = self.pyramid_request.active_useraccount_id
         self.pyramid_request.dbSession.flush()
         return True
@@ -409,26 +450,33 @@ class CustomValidator_Hooks(OAuth1RequestValidator_Hooks):
                     'oauth_authorized_realms': ' '.join(existing_token.realms)
                 }
         """
-        verifierObject = self._get_TokenRequest_by_verifier(request.verifier, request=request)
+        verifierObject = self._get_TokenRequest_by_verifier(
+            request.verifier, request=request
+        )
         if not verifierObject:
             # we always have a verifier!
             raise ApiPermissionsError("Invalid Verifier")
 
         # do we have an existing token?
-        existingToken = self.pyramid_request.dbSession.query(Developer_oAuth1Server_TokenAccess)\
-            .filter(Developer_oAuth1Server_TokenAccess.developer_application_id == verifierObject.developer_application_id,
-                    Developer_oAuth1Server_TokenAccess.useraccount_id == verifierObject.useraccount_id,
-                    Developer_oAuth1Server_TokenAccess.is_active == True,  # noqa
-                    )\
+        existingToken = (
+            self.pyramid_request.dbSession.query(Developer_oAuth1Server_TokenAccess)
+            .filter(
+                Developer_oAuth1Server_TokenAccess.developer_application_id
+                == verifierObject.developer_application_id,
+                Developer_oAuth1Server_TokenAccess.useraccount_id
+                == verifierObject.useraccount_id,
+                Developer_oAuth1Server_TokenAccess.is_active == True,  # noqa
+            )
             .first()
+        )
         if existingToken:
-            if existingToken._realms != ' '.join(request.realms):
-                existingToken._realms = ' '.join(request.realms)
+            if existingToken._realms != " ".join(request.realms):
+                existingToken._realms = " ".join(request.realms)
                 self.pyramid_request.dbSession.flush()
             return {
-                'oauth_token': existingToken.oauth_token,
-                'oauth_token_secret': existingToken.oauth_token_secret,
-                'oauth_authorized_realms': ' '.join(existingToken.realms)
+                "oauth_token": existingToken.oauth_token,
+                "oauth_token_secret": existingToken.oauth_token_secret,
+                "oauth_authorized_realms": " ".join(existingToken.realms),
             }
         return None
 
@@ -438,11 +486,11 @@ class CustomValidator_Hooks(OAuth1RequestValidator_Hooks):
 
 def get_ApiExampleAppData():
     app_data = {
-        'client_key': OAUTH1__APP_KEY,
-        'client_secret': OAUTH1__APP_SECRET,
-        'callback_uri': OAUTH1__URL_APP_FLOW_REGISTER_CALLBACK,
-        'scope': None,
-        'id': OAUTH1__APP_ID,
+        "client_key": OAUTH1__APP_KEY,
+        "client_secret": OAUTH1__APP_SECRET,
+        "callback_uri": OAUTH1__URL_APP_FLOW_REGISTER_CALLBACK,
+        "scope": None,
+        "id": OAUTH1__APP_ID,
     }
     return app_data
 
@@ -450,10 +498,11 @@ def get_ApiExampleAppData():
 def new_oauth1Provider(pyramid_request):
     """this is used to build a new auth"""
     validatorHooks = CustomValidator_Hooks(pyramid_request)
-    provider = oauth1_provider.OAuth1Provider(pyramid_request,
-                                              validator_api_hooks = validatorHooks,
-                                              validator_class = CustomValidator
-                                              )
+    provider = oauth1_provider.OAuth1Provider(
+        pyramid_request,
+        validator_api_hooks=validatorHooks,
+        validator_class=CustomValidator,
+    )
     return provider
 
 
