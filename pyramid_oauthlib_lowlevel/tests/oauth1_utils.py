@@ -75,7 +75,7 @@ class CustomValidator(OAuth1RequestValidator):
 
 class CustomValidator_Hooks(OAuth1RequestValidator_Hooks):
     """
-        This custom object expects a SqlAlchemy connection on `self.pyramid_request.dbSession`
+    This custom object expects a SqlAlchemy connection on `self.pyramid_request.dbSession`
     """
 
     @catch_backend_failure

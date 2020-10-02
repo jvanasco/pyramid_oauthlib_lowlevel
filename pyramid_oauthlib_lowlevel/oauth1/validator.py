@@ -108,7 +108,7 @@ class OAuth1RequestValidator_Hooks(object):
 
     def create_access_token_existing(self, request, credentials):
         """
-            THIS IS A DEV; NOT IMPLEMENTED IN MAIN
+        THIS IS A DEV; NOT IMPLEMENTED IN MAIN
         """
         return self._api_hooks.create_access_token_existing(request, credentials)
 
@@ -814,15 +814,15 @@ class OAuth1RequestValidator(RequestValidator):
 
     def create_access_token_existing(self, request, credentials):
         """
-            THIS IS A DEV; NOT IMPLEMENTED IN MAIN
+        THIS IS A DEV; NOT IMPLEMENTED IN MAIN
 
-            returns `None`
-                    or
-                    {
-                        'oauth_token': existing_token.oauth_token,
-                        'oauth_token_secret': existing_token.oauth_token_secret,
-                        'oauth_authorized_realms': ' '.join(existing_token.realms)
-                    }
+        returns `None`
+                or
+                {
+                    'oauth_token': existing_token.oauth_token,
+                    'oauth_token_secret': existing_token.oauth_token_secret,
+                    'oauth_authorized_realms': ' '.join(existing_token.realms)
+                }
         """
         log.debug(
             "OAuth1RequestValidator.create_access_token_existing(%r)", credentials

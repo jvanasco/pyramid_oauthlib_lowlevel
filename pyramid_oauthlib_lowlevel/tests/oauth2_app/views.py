@@ -279,8 +279,7 @@ class Authority_Oauth2_FlowA_API_Public(Handler):
 
 
 class Authority_Oauth2_FlowB_API_Public(Handler):
-    """
-    """
+    """"""
 
     @view_config(route_name="authority:oauth2:flow_b:obtain_token", renderer="string")
     def obtain_token(self):

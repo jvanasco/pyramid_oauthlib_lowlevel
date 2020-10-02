@@ -1,5 +1,7 @@
 0.2.2dev
 	black
+	* upgraded black; 20.8b1
+	* integrated with pre-commit
 
 0.2.1
 	small changes to the api client regarding content decoding

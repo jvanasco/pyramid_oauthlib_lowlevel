@@ -40,8 +40,7 @@ my_session_factory = SignedCookieSessionFactory("itsaseekreet")
 
 
 def main(global_config, **settings):
-    """ This function returns a Pyramid WSGI application.
-    """
+    """This function returns a Pyramid WSGI application."""
 
     if not settings:
         settings = {"sqlalchemy.url": "sqlite://", "mako.directories": "."}
