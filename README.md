@@ -1,3 +1,5 @@
+![Python package](https://github.com/jvanasco/pyramid_oauthlib_lowlevel/workflows/Python%20package/badge.svg)
+
 This is a package designed to create oAuth servers with Pyramid through a lowlevel interface that allows for more customization.
 
 Before using this package I suggest you consider the package `pyramid-oauthlib`, it is possibly better suited to your needs as it offers a highlevel interface.
