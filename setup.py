@@ -15,14 +15,18 @@ README = README.split("\n\n", 1)[0] + "\n"
 with open(
     os.path.join(os.path.dirname(__file__), "pyramid_oauthlib_lowlevel", "__init__.py")
 ) as v_file:
-    VERSION = re.compile(r".*__VERSION__ = '(.*?)'", re.S).match(v_file.read()).group(1)
+    VERSION = re.compile(r'.*__VERSION__ = "(.*?)"', re.S).match(v_file.read()).group(1)
 
-requires = ["oauthlib", "pyramid"]
-requires_tests = [
+requires = [
+    "oauthlib",
+    "pyramid",
+]
+tests_require = [
     "pyramid_formencode_classic",
     "pyramid_mako",
     "pyramid_tm",
     "pyramid",
+    "pytest",
     "requests_oauthlib",
     "requests",
     "responses",
@@ -31,6 +35,7 @@ requires_tests = [
     "webtest",
     "zope.sqlalchemy",
 ]
+testing_extras = []
 
 setup(
     name="pyramid_oauthlib_lowlevel",
@@ -55,6 +60,9 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=requires,
-    tests_require=requires + requires_tests,
+    tests_require=tests_require,
+    extras_require={
+        "testing": testing_extras,
+    },
     test_suite="pyramid_oauthlib_lowlevel.tests",
 )
