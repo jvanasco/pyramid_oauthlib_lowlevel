@@ -2,6 +2,7 @@
 """
 import os
 import re
+import sys
 
 from setuptools import setup
 from setuptools import find_packages
@@ -31,11 +32,16 @@ tests_require = [
     "requests",
     "responses",
     "sqlalchemy",
-    "twython",
     "webtest",
     "zope.sqlalchemy",
 ]
+if sys.version_info[0] == 2:
+    # last known twython version to support py27
+    tests_require.append("twython==3.7.0")
+else:
+    tests_require.append("twython")
 testing_extras = tests_require + []
+
 
 setup(
     name="pyramid_oauthlib_lowlevel",
