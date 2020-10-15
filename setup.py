@@ -35,7 +35,7 @@ tests_require = [
     "webtest",
     "zope.sqlalchemy",
 ]
-testing_extras = []
+testing_extras = tests_require + []
 
 setup(
     name="pyramid_oauthlib_lowlevel",
