@@ -8,14 +8,15 @@ from setuptools import setup
 from setuptools import find_packages
 
 here = os.path.abspath(os.path.dirname(__file__))
+
+long_description = description = "lowlevel Pyramid implementation of oauthlib"
+
+
 with open(os.path.join(here, "README.md")) as fp:
-    README = fp.read()
-README = README.split("\n\n", 1)[0] + "\n"
+    long_description = fp.read()
 
 # store version in the init.py
-with open(
-    os.path.join(os.path.dirname(__file__), "pyramid_oauthlib_lowlevel", "__init__.py")
-) as v_file:
+with open(os.path.join(here, "pyramid_oauthlib_lowlevel", "__init__.py")) as v_file:
     VERSION = re.compile(r'.*__VERSION__ = "(.*?)"', re.S).match(v_file.read()).group(1)
 
 requires = [
@@ -46,8 +47,12 @@ testing_extras = tests_require + []
 setup(
     name="pyramid_oauthlib_lowlevel",
     version=VERSION,
-    description="lowlevel pyramid implementation of oauthlib",
-    long_description=README,
+    author="Jonathan Vanasco",
+    author_email="jonathan@findmeon.com",
+    url="https://github.com/jvanasco/pyramid_oauthlib_lowlevel",
+    description=description,
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     classifiers=[
         "Intended Audience :: Developers",
         "Framework :: Pyramid",
@@ -56,11 +61,8 @@ setup(
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: BSD License",
     ],
-    keywords="web pyramid",
+    keywords="web pyramid oauth oauthlib",
     py_modules=["pyramid_oauthlib_lowlevel"],
-    author="Jonathan Vanasco",
-    author_email="jonathan@findmeon.com",
-    url="https://github.com/jvanasco/pyramid_oauthlib_lowlevel",
     license="BSD",
     packages=find_packages(),
     include_package_data=True,
