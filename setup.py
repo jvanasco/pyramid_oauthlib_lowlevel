@@ -7,16 +7,14 @@ import sys
 from setuptools import setup
 from setuptools import find_packages
 
-here = os.path.abspath(os.path.dirname(__file__))
+HERE = os.path.abspath(os.path.dirname(__file__))
 
 long_description = description = "lowlevel Pyramid implementation of oauthlib"
-
-
-with open(os.path.join(here, "README.md")) as fp:
+with open(os.path.join(HERE, "README.md")) as fp:
     long_description = fp.read()
 
 # store version in the init.py
-with open(os.path.join(here, "pyramid_oauthlib_lowlevel", "__init__.py")) as v_file:
+with open(os.path.join(HERE, "pyramid_oauthlib_lowlevel", "__init__.py")) as v_file:
     VERSION = re.compile(r'.*__VERSION__ = "(.*?)"', re.S).match(v_file.read()).group(1)
 
 requires = [
