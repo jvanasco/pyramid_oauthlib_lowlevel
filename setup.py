@@ -14,7 +14,9 @@ with open(os.path.join(HERE, "README.md")) as fp:
     long_description = fp.read()
 
 # store version in the init.py
-with open(os.path.join(HERE, "pyramid_oauthlib_lowlevel", "__init__.py")) as v_file:
+with open(
+    os.path.join(HERE, "src", "pyramid_oauthlib_lowlevel", "__init__.py")
+) as v_file:
     VERSION = re.compile(r'.*__VERSION__ = "(.*?)"', re.S).match(v_file.read()).group(1)
 
 requires = [
@@ -62,7 +64,10 @@ setup(
     keywords="web pyramid oauth oauthlib",
     py_modules=["pyramid_oauthlib_lowlevel"],
     license="BSD",
-    packages=find_packages(),
+    packages=find_packages(
+        where="src",
+    ),
+    package_dir={"": "src"},
     include_package_data=True,
     zip_safe=False,
     install_requires=requires,
@@ -70,5 +75,5 @@ setup(
     extras_require={
         "testing": testing_extras,
     },
-    test_suite="pyramid_oauthlib_lowlevel.tests",
+    test_suite="tests",
 )

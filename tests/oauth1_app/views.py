@@ -200,7 +200,7 @@ class Authority_Oauth1_FlowShared_API_Public(Handler):
         except OAuth1Error as exc:
             self.request.workspace.oAuth1_Error = exc
             return render_to_response(
-                "pyramid_oauthlib_lowlevel:tests/oauth1_app/templates/authorize-error.mako",
+                "templates/authorize-error.mako",
                 {},
                 self.request,
             )
@@ -208,7 +208,7 @@ class Authority_Oauth1_FlowShared_API_Public(Handler):
     def _authorize_print(self):
         """print the form"""
         return render_to_response(
-            "pyramid_oauthlib_lowlevel:tests/oauth1_app/templates/authorize-form.mako",
+            "templates/authorize-form.mako",
             {},
             self.request,
         )

@@ -242,7 +242,7 @@ class Authority_Oauth2_FlowA_API_Public(Handler):
     def _authorization__print(self):
         """print the form"""
         return render_to_response(
-            "pyramid_oauthlib_lowlevel:tests/oauth2_app/templates/authorize-form.mako",
+            "templates/authorize-form.mako",
             {},
             self.request,
         )
