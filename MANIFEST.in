@@ -6,6 +6,7 @@ include tox.ini
 include README.md
 include CHANGES.txt
 include LICENSE.txt
+include LICENSE-Pyramid.txt
 include TESTING.txt
 include TODO.txt
 

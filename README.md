@@ -275,4 +275,17 @@ This strategy will allow you to easily differentiate between client_credential (
 Python Compatibility
 ====================
 
-`pyramid_oauthlib_lowlevel` is tested to run under Python2.7 and Python3.6
+`pyramid_oauthlib_lowlevel` is tested to run under Python2.7 and Python3.6+
+
+License
+=======
+
+Some functions are ported from oauthlib and flask-oauthlib;
+see LICENSE.txt
+
+Some functions are ported from Pyramid and appear under their License;
+see LICENSE-Pyramid.txt
+
+
+
+
