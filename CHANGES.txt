@@ -1,16 +1,22 @@
+0.2.4
+    * fixed try/except black that did not properly catch an exception scenario
+    * rely on six instead of copying some functions from other projects
+    * cleanup imports
+    * cleanup rst formatting
+
 0.2.3
-	* packaging
-	* removed pyramid_compat
-		* should work on pyramid1.x and 2.x
+    * packaging
+    * removed pyramid_compat
+        * should work on pyramid1.x and 2.x
 
 0.2.2
-	* black
-	* upgraded black; 20.8b1
-	* integrated with pre-commit
-	* packaging
+    * black
+    * upgraded black; 20.8b1
+    * integrated with pre-commit
+    * packaging
 
 0.2.1
-	small changes to the api client regarding content decoding
+    small changes to the api client regarding content decoding
 
 0.2.0
-	public release
+    public release

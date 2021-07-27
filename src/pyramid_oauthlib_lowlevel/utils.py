@@ -7,10 +7,10 @@ log = logging.getLogger(__name__)
 # stdlib
 from functools import wraps
 import os
-import sys
 
-# pyramid
+# pypi
 from pyramid.response import Response
+from six import ensure_str
 
 # local
 from .errors import BackendError
@@ -25,33 +25,9 @@ PRINT_ERRORS = bool(int(os.getenv("PYRAMID_OAUTHLIB_LOWLEVEL__PRINT_ERRORS", 0))
 
 # ==============================================================================
 
-"""
-The following functions are copied from ``pyramid.compat``:
 
-* native_
-
-"""
-if sys.version_info[0] == 2:
-    text_type = unicode
-
-    def native_(s, encoding="latin-1", errors="strict"):
-        """If ``s`` is an instance of ``text_type``, return
-        ``s.encode(encoding, errors)``, otherwise return ``str(s)``"""
-        if isinstance(s, text_type):
-            return s.encode(encoding, errors)
-        return str(s)
-
-
-else:
-    text_type = str
-
-    def native_(s, encoding="latin-1", errors="strict"):
-        """If ``s`` is an instance of ``text_type``, return
-        ``s``, otherwise return ``str(s, encoding, errors)``
-        """
-        if isinstance(s, text_type):
-            return s
-        return str(s, encoding, errors)
+def native_(s, encoding="latin-1", errors="strict"):
+    return ensure_str(s, encoding, errors)
 
 
 def oauth1_to_pyramid_Response(ret):
@@ -94,16 +70,18 @@ def string_headers(headers):
 
 def create_response(headers, body, status):
     """
-    originally from flask-oauthlib
+    Originally from flask-oauthlib
     Extract request params.
 
-    flask-oauthlib:
+    flask-oauthlib::
+
         response = Response(body or '')
         for (k, v) in headers.items():
             response.headers[str(k)] = v
         response.status_code = status
 
-    pyramid_oauthlib:
+    pyramid_oauthlib::
+
         return Response(
             body=body,
             status=status,
@@ -112,7 +90,8 @@ def create_response(headers, body, status):
                      in headers.items()
                      }
         )
-    the flask version works for oauth1 under pyramid, but not oauth2
+
+    the flask version works for OAuth1 under Pyramid, but not OAuth2
     """
     response = Response(
         body=body,

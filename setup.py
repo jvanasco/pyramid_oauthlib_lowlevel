@@ -22,25 +22,26 @@ with open(
 requires = [
     "oauthlib",
     "pyramid",
+    "requests_oauthlib",
+    "requests",
+    "six",
 ]
+if sys.version_info[0] == 2:
+    # last known twython version to support py27
+    requires.append("twython==3.7.0")
+else:
+    requires.append("twython")
 tests_require = [
     "pyramid_formencode_classic",
     "pyramid_mako",
     "pyramid_tm",
     "pyramid",
     "pytest",
-    "requests_oauthlib",
-    "requests",
     "responses",
     "sqlalchemy",
     "webtest",
     "zope.sqlalchemy",
 ]
-if sys.version_info[0] == 2:
-    # last known twython version to support py27
-    tests_require.append("twython==3.7.0")
-else:
-    tests_require.append("twython")
 testing_extras = tests_require + []
 
 

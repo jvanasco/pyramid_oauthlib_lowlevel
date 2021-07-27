@@ -6,7 +6,6 @@ log = logging.getLogger(__name__)
 # stdlib
 import os
 import datetime
-import pdb
 
 # pypi, upstream
 from oauthlib.oauth2.rfc6749.errors import InvalidClientIdError
@@ -67,7 +66,7 @@ class OAuth2RequestValidator_Hooks(object):
 
         raise InvalidClientIdError("Invalid Client")
 
-        EXAMPLE:
+        EXAMPLE::
 
             def client_getter(self, client_id=None):
                 client = dbSession.get(client_id)
@@ -75,25 +74,25 @@ class OAuth2RequestValidator_Hooks(object):
                     raise InvalidClientIdError("Invalid Client")
                 return client
 
-        EXAMPLE ARGS:
+        EXAMPLE ARGS::
 
             client_id = u'1kbjabsd8o7bkjbsdfbsdf'
 
         The method accepts one parameter `client_id`, and it returns
         a `client` object with at least the following information:
 
-            - client_id: A random string
-            - client_secret: A random string
-            - is_confidential: A bool represents if it is confidential
-            - redirect_uris: A list of redirect uris
-            - default_redirect_uri: One of the redirect uris
-            - default_scopes: Default scopes of the client
+        - client_id: A random string
+        - client_secret: A random string
+        - is_confidential: A bool represents if it is confidential
+        - redirect_uris: A list of redirect uris
+        - default_redirect_uri: One of the redirect uris
+        - default_scopes: Default scopes of the client
 
         The client may contain more information, which is suggested:
 
-            - allowed_grant_types: A list of grant types
-            - allowed_response_types: A list of response types
-            - validate_scopes: A function to validate scopes
+        - allowed_grant_types: A list of grant types
+        - allowed_response_types: A list of response types
+        - validate_scopes: A function to validate scopes
         """
         raise NotImplementedError("Subclasses must implement this function.")
 
@@ -108,8 +107,10 @@ class OAuth2RequestValidator_Hooks(object):
         :param code: A dict of the authorization code grant and, optionally, state.
         :param request: The HTTP Request (oauthlib.common.Request)
 
-        def set_grant(client_id, code, request, *args, **kwargs):
-            save_grant(client_id, code, request.user, request.scopes)
+        EXAMPLE::
+
+            def set_grant(client_id, code, request, *args, **kwargs):
+                save_grant(client_id, code, request.user, request.scopes)
         """
         raise NotImplementedError("Subclasses must implement this function.")
 
@@ -139,6 +140,9 @@ class OAuth2RequestValidator_Hooks(object):
         :param token: A Bearer token dict
         :param request: The HTTP Request (oauthlib.common.Request)
 
+
+        EXAMPLE::
+
             def bearer_token_setter(token, request, *args, **kwargs):
                 save_token(token, request.client, request.user)
 
@@ -160,12 +164,12 @@ class OAuth2RequestValidator_Hooks(object):
         This method accepts an `access_token` or `refresh_token` parameters,
         and it returns a token object with at least these information:
 
-            - access_token: A string token
-            - refresh_token: A string token
-            - client_id: ID of the client
-            - scopes: A list of scopes
-            - expires: A `datetime.datetime` object
-            - user: The user object
+        - access_token: A string token
+        - refresh_token: A string token
+        - client_id: ID of the client
+        - scopes: A list of scopes
+        - expires: A `datetime.datetime` object
+        - user: The user object
 
         :param access_token: Unicode access token
         :param refresh_token: Unicode refresh token
@@ -177,6 +181,8 @@ class OAuth2RequestValidator_Hooks(object):
         This method expects a `tokenObject` as a single argument.
 
         The token should be deleted or otherwise marked as revoked.
+
+        EXAMPLES::
 
             def token_revoke(self, tokenObject):
                 tokenObject.is_active = False
@@ -192,9 +198,9 @@ class OAuth2RequestValidator_Hooks(object):
 
     def user_getter(self, username, password, client, request, *args, **kwargs):
         """
-        This method is only required for **password credential** authorization::
+        This method is only required for **password credential** authorization.
 
-        Known implementations that have worked include:
+        Known implementations that have worked include::
 
             def user_getter(self, username, password, client, request, *args, **kwargs):
                 # client: current request client
@@ -236,7 +242,8 @@ class OAuth2RequestValidator(RequestValidator):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def __init__(self, pyramid_request, validator_api_hooks=None):
-        """Builds a new RequestValidator
+        """
+        Builds a new RequestValidator
 
         :param pyramid_request: pyramid `request` object.
         :param validator_api_hooks: A subclass of `OAuth2RequestValidator_Hooks`
@@ -248,7 +255,8 @@ class OAuth2RequestValidator(RequestValidator):
     # --------------------------------------------------------------------------
 
     def _get_client_creds_from_request(self, request):
-        """Return client credentials based on the current request.
+        """
+        Return client credentials based on the current request.
 
         According to the rfc6749, client MAY use the HTTP Basic authentication
         scheme as defined in [RFC2617] to authenticate with the authorization
@@ -265,8 +273,8 @@ class OAuth2RequestValidator(RequestValidator):
         IMPORTANT:
 
         When dealing with an AUTHORIZATION header:
-            flask-oauthlib precomputes this via Werkzeug into a dict
-            pyramid's integration does not precompute right now
+            - flask-oauthlib precomputes this via Werkzeug into a dict
+            - pyramid's integration does not precompute right now
         """
         if request.client_id is not None:
             return request.client_id, request.client_secret
@@ -378,7 +386,8 @@ class OAuth2RequestValidator(RequestValidator):
     def confirm_redirect_uri(
         self, client_id, code, redirect_uri, client, *args, **kwargs
     ):
-        """Ensure client is authorized to redirect to the redirect_uri.
+        """
+        Ensure client is authorized to redirect to the redirect_uri.
 
         This method is used in the authorization code grant flow. It will
         compare redirect_uri and the one in grant token strictly, you can
@@ -421,7 +430,8 @@ class OAuth2RequestValidator(RequestValidator):
         return grant.redirect_uri == redirect_uri
 
     def get_default_redirect_uri(self, client_id, request, *args, **kwargs):
-        """Default redirect_uri for the given client.
+        """
+        Default redirect_uri for the given client.
 
         :param client_id: Unicode client identifier
         :param request: The HTTP Request (oauthlib.common.Request)
@@ -437,7 +447,8 @@ class OAuth2RequestValidator(RequestValidator):
         return redirect_uri
 
     def get_default_scopes(self, client_id, request, *args, **kwargs):
-        """Default scopes for the given client.
+        """
+        Default scopes for the given client.
 
         :param client_id: Unicode client identifier
         :param request: The HTTP Request (oauthlib.common.Request)
@@ -455,7 +466,8 @@ class OAuth2RequestValidator(RequestValidator):
         return scopes
 
     def get_original_scopes(self, refresh_token, request, *args, **kwargs):
-        """Get the list of scopes associated with the refresh token.
+        """
+        Get the list of scopes associated with the refresh token.
 
         This method is used in the refresh token grant flow.  We return
         the scope of the token to be refreshed so it can be applied to the
@@ -475,7 +487,8 @@ class OAuth2RequestValidator(RequestValidator):
     def is_within_original_scope(
         self, request_scopes, refresh_token, request, *args, **kwargs
     ):
-        """Check if requested scopes are within a scope of the refresh token.
+        """
+        Check if requested scopes are within a scope of the refresh token.
 
         When access tokens are refreshed the scope of the new token
         needs to be within the scope of the original token. This is
@@ -496,7 +509,8 @@ class OAuth2RequestValidator(RequestValidator):
         return False
 
     def invalidate_authorization_code(self, client_id, code, request, *args, **kwargs):
-        """Invalidate an authorization code after use.
+        """
+        Invalidate an authorization code after use.
 
         We keep the temporary code in a grant, which has a `delete`
         function to destroy itself.
@@ -514,7 +528,8 @@ class OAuth2RequestValidator(RequestValidator):
             self._api_hooks.grant_invalidate(grantObject)
 
     def revoke_token(self, token, token_type_hint, request, *args, **kwargs):
-        """Revoke an access or refresh token.
+        """
+        Revoke an access or refresh token.
 
         :param token: The token string.
         :param token_type_hint: access_token or refresh_token.
@@ -542,7 +557,8 @@ class OAuth2RequestValidator(RequestValidator):
         return False
 
     def rotate_refresh_token(self, request):
-        """Determine whether to rotate the refresh token. Default, yes.
+        """
+        Determine whether to rotate the refresh token. Default, yes.
 
         When access tokens are refreshed the old refresh token can be kept
         or replaced with a new one (rotated). Return True to rotate and
@@ -557,7 +573,8 @@ class OAuth2RequestValidator(RequestValidator):
         return True
 
     def save_authorization_code(self, client_id, code, request, *args, **kwargs):
-        """Persist the authorization code.
+        """
+        Persist the authorization code.
 
         :param client_id: Unicode client identifier
         :param code: A dict of the authorization code grant and, optionally, state.
@@ -572,7 +589,8 @@ class OAuth2RequestValidator(RequestValidator):
         return request.client.default_redirect_uri
 
     def save_token(self, token, request, *args, **kwargs):
-        """Persist the token with a token type specific method.
+        """
+        Persist the token with a token type specific method.
 
         Currently, only save_bearer_token is supported **WITHIN oauthlib**.
 
@@ -582,7 +600,8 @@ class OAuth2RequestValidator(RequestValidator):
         return self.save_bearer_token(token, request, *args, **kwargs)
 
     def save_bearer_token(self, token, request, *args, **kwargs):
-        """Persist the Bearer token.
+        """
+        Persist the Bearer token.
 
         The Bearer token should at minimum be associated with:
             - a client and it's client_id, if available
@@ -633,7 +652,8 @@ class OAuth2RequestValidator(RequestValidator):
         return request.client.default_redirect_uri
 
     def validate_bearer_token(self, token, scopes, request):
-        """Validate access token.
+        """
+        Validate access token.
 
         Detailed docs in `oauthlib.oauth2.rfc6749.request_validator.RequestValidator.validate_bearer_token`
 
@@ -710,7 +730,8 @@ class OAuth2RequestValidator(RequestValidator):
         return False
 
     def validate_code(self, client_id, code, client, request, *args, **kwargs):
-        """Verify that the authorization_code is valid and assigned to the given
+        """
+        Verify that the authorization_code is valid and assigned to the given
         client.
 
         Before returning true, set the following based on the information stored
@@ -720,6 +741,7 @@ class OAuth2RequestValidator(RequestValidator):
             - request.state (if given)
             - request.scopes
             - request.claims (if given)
+
         OBS! The request.user attribute should be set to the resource owner
         associated with this authorization code. Similarly request.scopes
         must also be set.
@@ -812,7 +834,8 @@ class OAuth2RequestValidator(RequestValidator):
         return True
 
     def validate_redirect_uri(self, client_id, redirect_uri, request, *args, **kwargs):
-        """Ensure client is authorized to redirect to the redirect_uri.
+        """
+        Ensure client is authorized to redirect to the redirect_uri.
 
         This method is used in the authorization code grant flow and also
         in implicit grant flow. It will detect if redirect_uri in client's
@@ -828,7 +851,8 @@ class OAuth2RequestValidator(RequestValidator):
         return redirect_uri in client.redirect_uris
 
     def validate_refresh_token(self, refresh_token, client, request, *args, **kwargs):
-        """Ensure the token is valid and belongs to the client
+        """
+        Ensure the token is valid and belongs to the client
 
         OBS! The request.user attribute should be set to the resource owner
         associated with this refresh token.
@@ -858,7 +882,8 @@ class OAuth2RequestValidator(RequestValidator):
     def validate_response_type(
         self, client_id, response_type, client, request, *args, **kwargs
     ):
-        """Ensure client is authorized to use the response type requested.
+        """
+        Ensure client is authorized to use the response type requested.
 
         It will allow any of the two (`code`, `token`) response types by
         default. Implemented `allowed_response_types` for client object
@@ -905,7 +930,8 @@ class OAuth2RequestValidator(RequestValidator):
         return set(client.default_scopes).issuperset(set(scopes))
 
     def validate_silent_authorization(self, request):
-        """Ensure the logged in user has authorized silent OpenID authorization.
+        """
+        Ensure the logged in user has authorized silent OpenID authorization.
 
         Silent OpenID authorization allows access tokens and id tokens to be
         granted to clients without any user prompt or interaction.
@@ -921,7 +947,8 @@ class OAuth2RequestValidator(RequestValidator):
         raise NotImplementedError("Subclasses must implement this method.")
 
     def validate_silent_login(self, request):
-        """Ensure session user has authorized silent OpenID login.
+        """
+        Ensure session user has authorized silent OpenID login.
 
         If no user is logged in or has not authorized silent login, this
         method should return False.
@@ -941,7 +968,8 @@ class OAuth2RequestValidator(RequestValidator):
         raise NotImplementedError("Subclasses must implement this method.")
 
     def validate_user(self, username, password, client, request, *args, **kwargs):
-        """Ensure the username and password is valid.
+        """
+        Ensure the username and password is valid.
 
         OBS! The validation should also set the user attribute of the request
         to a valid resource owner, i.e. request.user = username or similar. If
@@ -970,7 +998,8 @@ class OAuth2RequestValidator(RequestValidator):
         return False
 
     def validate_user_match(self, id_token_hint, scopes, claims, request):
-        """Ensure client supplied user id hint matches session user.
+        """
+        Ensure client supplied user id hint matches session user.
 
         If the sub claim or id_token_hint is supplied then the session
         user must match the given ID.
