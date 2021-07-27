@@ -1,3 +1,6 @@
+TESTS
+=====
+
 tests are within the package
 
 please note: `pyramid_oauthlib_lowlevel.tests.oauth2_app` and  `pyramid_oauthlib_lowlevel.tests.oauth1_app` are both fully functional example oAuth applications. They each implement an Authority Server and Client Application Server.
@@ -16,3 +19,9 @@ there are some envrionment variables that can help control tests and application
 `export PYRAMID_OAUTHLIB_LOWLEVEL__LOG_ROUTE=1`
 	
 	extra debugging during tests
+
+
+FLAKE8
+======
+
+	flake8 src --ignore=D,E501,E402,W503

@@ -4,11 +4,12 @@ log = logging.getLogger(__name__)
 
 # pypi, upstream
 from oauthlib.oauth1 import WebApplicationServer as Server
-from oauthlib.common import to_unicode, add_params_to_uri, urlencode
-from oauthlib.oauth1.rfc5849 import errors
+
+# from oauthlib.common import to_unicode, add_params_to_uri, urlencode
+# from oauthlib.oauth1.rfc5849 import errors
 
 # pypi
-from pyramid.httpexceptions import HTTPUnauthorized
+# from pyramid.httpexceptions import HTTPUnauthorized
 
 # local
 from .. import utils
@@ -38,7 +39,8 @@ class OAuth1Provider(object):
 
         :param pyramid_request: pyramid `request` object.
         :param validator_api_hooks: A subclass of `base_OAuth1RequestValidator_Hooks`
-        :param validator_class: A subclass of `OAuth1RequestValidator` or None (defaults to OAuth1RequestValidator)
+        :param validator_class: A subclass of `OAuth1RequestValidator` or None
+            (defaults to OAuth1RequestValidator)
         """
         self.pyramid_request = pyramid_request
         self._validator_api_hooks = validator_api_hooks
@@ -78,8 +80,7 @@ class OAuth1Provider(object):
         """
         actual endpoint logic
 
-        kwargs:
-            dbSessionCommit: if provided, will call `commit()` on this dbSession
+        :param dbSessionCommit: if provided, will call `commit()` on this dbSession
         """
         uri, http_method, body, headers = utils.extract_params(self.pyramid_request)
         # resp_headers, token, 200
@@ -95,9 +96,8 @@ class OAuth1Provider(object):
         """
         actual endpoint logic
 
-        kwargs:
-            dbSessionCommit: if provided, will call `commit()` on this dbSession
-            update_access_token: currently not implemented yet
+        :param dbSessionCommit: if provided, will call `commit()` on this dbSession
+        :param update_access_token: currently not implemented yet
 
         TODO: update_access_token
         """
@@ -138,9 +138,9 @@ class OAuth1Provider(object):
     def endpoint__authorize__authorize(self, oauth1_data=None, dbSessionCommit=None):
         """
         authorize the app
-        kwargs:
-            `oauth1_data` is object from `extract__endpoint_authorize_data`
-            dbSessionCommit: if provided, will call `commit()` on this dbSession
+
+        :param oauth1_data: object from `extract__endpoint_authorize_data`
+        :param dbSessionCommit: if provided, will call `commit()` on this dbSession
         """
         uri = oauth1_data["uri"]
         http_method = oauth1_data["http_method"]
@@ -160,10 +160,12 @@ class OAuth1Provider(object):
     def logic__is_authorized(self, realms):
         """
         This checks for a valid oAuth payload for the given `realms`.
-        The return value is a tuple of :
+
+        The return value is a tuple of::
+
             (valid, oauth_request_object)
 
-        A common usage might be:
+        A common usage might be::
 
             oauth1Provider = new_oauth1Provider(request)
             _is_authorized, req = oauth1Provider.logic__is_authorized(['platform.actor', ])

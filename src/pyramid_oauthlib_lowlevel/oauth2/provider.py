@@ -3,26 +3,25 @@ import logging
 log = logging.getLogger(__name__)
 
 # stdlib
-from functools import wraps
-import pdb
-
+# from functools import wraps
 
 # pypi, upstream
 from oauthlib import oauth2
 from oauthlib.oauth2 import Server
-from oauthlib.oauth2.rfc6749.endpoints.base import BaseEndpoint
-from oauthlib.oauth2.rfc6749.endpoints.base import catch_errors_and_unavailability
+
+# from oauthlib.oauth2.rfc6749.endpoints.base import BaseEndpoint
+# from oauthlib.oauth2.rfc6749.endpoints.base import catch_errors_and_unavailability
 from oauthlib.common import add_params_to_uri
 
 # pypi
-from pyramid.httpexceptions import HTTPUnauthorized
+# from pyramid.httpexceptions import HTTPUnauthorized
 from pyramid.httpexceptions import HTTPFound
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.httpexceptions import HTTPBadRequest
 
 # local
-from .. import utils
-from .errors import MiscellaneousOAuth2Error
+# from .. import utils
+# from .errors import MiscellaneousOAuth2Error
 from .validator import OAuth2RequestValidator
 from ..utils import create_response
 from ..utils import extract_params

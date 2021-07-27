@@ -6,8 +6,8 @@ log = logging.getLogger(__name__)
 import requests
 from requests.auth import HTTPBasicAuth
 from requests_oauthlib import OAuth1, OAuth2
-from twython.compat import json, urlencode, parse_qsl, quote_plus, str, is_py2
 import six
+from twython.compat import json, urlencode, parse_qsl
 
 # ==============================================================================
 
@@ -161,14 +161,17 @@ class ApiClient(object):
     def get_authentication_tokens(
         self, callback_url=None, extra_args=None, force_login=False
     ):
-        """Returns a dict including an authorization URL, ``auth_url``, to
-           direct a user to
+        """
+        Returns a dict including an authorization URL, ``auth_url``, to
+        direct a user to
+
         :param callback_url: (optional) Url the user is returned to after
                              they authorize your app (web clients only)
         :param force_login: (optional) Forces the user to enter their
                             credentials to ensure the correct users
                             account is authorized.
         :rtype: dict
+
         """
         if self.oauth_version != 1:
             raise ApiError(
@@ -229,13 +232,13 @@ class ApiClient(object):
         return request_tokens
 
     def get_authorized_tokens(self, oauth_verifier, extra_args=None):
-        """Returns a dict of authorized tokens after they go through the
+        """
+        Returns a dict of authorized tokens after they go through the
         :class:`get_authentication_tokens` phase.
 
-        :param oauth_verifier: (required) The oauth_verifier (or a.k.a PIN
-        for non web apps) retrieved from the callback url querystring
+        :param oauth_verifier: (required) The oauth_verifier (or a.k.a PIN for
+            non web-apps) retrieved from the callback url querystring
         :rtype: dict
-
         """
         if self.oauth_version != 1:
             raise ApiError(
@@ -302,6 +305,7 @@ class ApiClient(object):
         basic_auth = HTTPBasicAuth(self.app_key, self.app_secret)
         content = None
         request_args = {}
+        response = None
         if extra_args:
             for (k, v) in extra_args.items():
                 if k not in request_args:
@@ -320,12 +324,15 @@ class ApiClient(object):
             except AttributeError:
                 content = json.loads(content)
 
-            _bearer_token = content["access_token"]
+            # _bearer_token = content["access_token"]
             _token_type = content["token_type"]
             if _token_type != "Bearer":
                 raise ValueError()
 
         except (KeyError, ValueError, requests.exceptions.RequestException) as ex_og:
+            log.debug(
+                "Exception `%s` in `obtain_access_token`: %s" % (type(ex_og), ex_og)
+            )
             log.debug(content)
             ex = ApiAuthError("Unable to obtain OAuth 2 access token.")
             ex.original_exception = ex_og

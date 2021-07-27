@@ -2,9 +2,6 @@ import logging
 
 log = logging.getLogger(__name__)
 
-# stdlib
-import json
-
 # pypi, upstream
 from oauthlib.oauth2.rfc6749.errors import OAuth2Error
 
