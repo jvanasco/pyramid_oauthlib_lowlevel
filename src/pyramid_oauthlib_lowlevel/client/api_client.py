@@ -1,30 +1,42 @@
+# stdlib
+import json
 import logging
-
-log = logging.getLogger(__name__)
+from typing import Any
+from typing import Dict
+from typing import Optional
+from urllib.parse import parse_qsl
+from urllib.parse import urlencode
 
 # pypi
 import requests
 from requests.auth import HTTPBasicAuth
-from requests_oauthlib import OAuth1, OAuth2
-import six
-from twython.compat import json, urlencode, parse_qsl
+from requests_oauthlib import OAuth1
+from requests_oauthlib import OAuth2
 
 # ==============================================================================
 
+log = logging.getLogger(__name__)
+
 
 class ApiError(Exception):
-
     error_code = None
-    msg = None
+    original_exception: Optional[Exception]
+    original_response: Optional[Any]
+    original_content: Optional[str]
 
     """Generic error class, catch-all for most issues."""
 
-    def __init__(self, msg, error_code=None, retry_after=None):
+    def __init__(
+        self,
+        msg,
+        error_code=None,
+        retry_after=None,
+    ):
         self.error_code = error_code
         super(ApiError, self).__init__(msg)
 
     @property
-    def msg(self):  # pragma: no cover
+    def msg(self):
         return self.args[0]
 
 
@@ -142,7 +154,7 @@ class ApiClient(object):
         # Pop out all the acceptable args at this point because they will
         # Never be used again.
         client_args_copy = self.client_args.copy()
-        for (k, v) in client_args_copy.items():
+        for k, v in client_args_copy.items():
             if k in ("cert", "hooks", "max_redirects", "proxies", "verify"):
                 setattr(self.client, k, v)
                 self.client_args.pop(k)  # Pop, pop!
@@ -159,8 +171,11 @@ class ApiClient(object):
     # ------------------------------------------------------------------------------
 
     def get_authentication_tokens(
-        self, callback_url=None, extra_args=None, force_login=False
-    ):
+        self,
+        callback_url: Optional[str] = None,
+        extra_args: Optional[Dict] = None,
+        force_login=False,
+    ) -> Dict:
         """
         Returns a dict including an authorization URL, ``auth_url``, to
         direct a user to
@@ -179,20 +194,17 @@ class ApiClient(object):
                                OAuth version is 1.0."
             )
 
+        if force_login:
+            raise ValueError("`force_login` is not implemented yet")
+
         # we toggle this in, then fix
         _callback_uri_old = self.client.auth.client.callback_uri
         if callback_url:
-            # python2 - this can be unicode or string
-            # python3 - no issues i think
-            if isinstance(callback_url, six.text_type):
-                callback_url = callback_url
-            else:
-                callback_url = six.u(callback_url)
             self.client.auth.client.callback_uri = callback_url
 
         request_args = {}
         if extra_args:
-            for (k, v) in extra_args.items():
+            for k, v in extra_args.items():
                 if k not in request_args:
                     request_args[k] = v
 
@@ -222,7 +234,11 @@ class ApiClient(object):
         auth_url_params = {"oauth_token": request_tokens["oauth_token"]}
 
         # Use old-style callback argument if server didn't accept new-style
-        if callback_url and not oauth_callback_confirmed:
+        if (
+            callback_url
+            and not oauth_callback_confirmed
+            and hasattr(self, "callback_url")
+        ):
             auth_url_params["oauth_callback"] = self.callback_url
 
         request_tokens["auth_url"] = (
@@ -231,7 +247,11 @@ class ApiClient(object):
 
         return request_tokens
 
-    def get_authorized_tokens(self, oauth_verifier, extra_args=None):
+    def get_authorized_tokens(
+        self,
+        oauth_verifier: str,
+        extra_args: Optional[Dict] = None,
+    ) -> Dict:
         """
         Returns a dict of authorized tokens after they go through the
         :class:`get_authentication_tokens` phase.
@@ -247,7 +267,7 @@ class ApiClient(object):
 
         request_args = {}
         if extra_args:
-            for (k, v) in extra_args.items():
+            for k, v in extra_args.items():
                 if k not in request_args:
                     request_args[k] = v
 
@@ -269,7 +289,7 @@ class ApiClient(object):
                 try:
                     # try to get json
                     content = response.json()
-                except AttributeError:  # pragma: no cover
+                except AttributeError:
                     # if unicode detected
                     content = json.loads(response.text)
             except ValueError:
@@ -288,11 +308,14 @@ class ApiClient(object):
         if not authorized_tokens:
             raise ApiError("Unable to decode authorized tokens.")
 
-        return authorized_tokens  # pragma: no cover
+        return authorized_tokens
 
     # ------------------------------------------------------------------------------
 
-    def obtain_access_token(self, extra_args=None):
+    def obtain_access_token(
+        self,
+        extra_args: Optional[Dict] = None,
+    ) -> Dict:
         """Returns an OAuth 2 access token to make OAuth 2 authenticated read-only calls.
         :rtype: json
         """
@@ -307,7 +330,7 @@ class ApiClient(object):
         request_args = {}
         response = None
         if extra_args:
-            for (k, v) in extra_args.items():
+            for k, v in extra_args.items():
                 if k not in request_args:
                     request_args[k] = v
         try:
@@ -344,11 +367,20 @@ class ApiClient(object):
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    def revoke_access_token(self, token=None, token_type_hint=None):
+    def revoke_access_token(
+        self,
+        token: Optional[str] = None,
+        token_type_hint: Optional[str] = None,
+    ) -> bool:
+        """
+        token_type_hint: "access_token" or "refresh_token"
+        """
         if self.oauth_version != 2:
             raise ApiError(
                 "This method can only be called when your OAuth version is 2.0."
             )
+        if not token:
+            raise ValueError("`token` is required")
 
         data = {"token": token}
         if token_type_hint:

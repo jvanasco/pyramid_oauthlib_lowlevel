@@ -1,33 +1,28 @@
 # stdlib
 import datetime
-import pdb
 import time
 
 # pypi
 import sqlalchemy
 import sqlalchemy.orm
-from oauthlib.oauth1.rfc5849 import errors as oauthlib_oauth1_errors
 
-# local module
-from pyramid_oauthlib_lowlevel.oauth1.validator import OAuth1RequestValidator_Hooks
-from pyramid_oauthlib_lowlevel.oauth1.validator import OAuth1RequestValidator
-from pyramid_oauthlib_lowlevel.oauth1 import provider as oauth1_provider
+# local
 from pyramid_oauthlib_lowlevel.client.api_client import ApiClient
+from pyramid_oauthlib_lowlevel.oauth1 import provider as oauth1_provider
+from pyramid_oauthlib_lowlevel.oauth1.validator import OAuth1RequestValidator
+from pyramid_oauthlib_lowlevel.oauth1.validator import OAuth1RequestValidator_Hooks
 from pyramid_oauthlib_lowlevel.utils import catch_backend_failure
-
-# local tests
-from . import oauth1_model
+from .oauth1_model import Developer_oAuth1Server_Nonce
 from .oauth1_model import Developer_oAuth1Server_TokenAccess
 from .oauth1_model import Developer_oAuth1Server_TokenRequest
-from .oauth1_model import Developer_oAuth1Server_Nonce
 from .oauth1_model import DeveloperApplication
 from .oauth1_model import DeveloperApplication_Keyset
 from .oauth1_model import OAUTH1__APP_ID
 from .oauth1_model import OAUTH1__APP_KEY
 from .oauth1_model import OAUTH1__APP_SECRET
 from .oauth1_model import OAUTH1__URL_APP_FLOW_REGISTER_CALLBACK
-from .oauth1_model import OAUTH1__URL_AUTHORITY_AUTHENTICATE
 from .oauth1_model import OAUTH1__URL_AUTHORITY_ACCESS_TOKEN
+from .oauth1_model import OAUTH1__URL_AUTHORITY_AUTHENTICATE
 from .oauth1_model import OAUTH1__URL_AUTHORITY_REQUEST_TOKEN
 
 # ==============================================================================
@@ -450,6 +445,8 @@ class CustomValidator_Hooks(OAuth1RequestValidator_Hooks):
                     'oauth_authorized_realms': ' '.join(existing_token.realms)
                 }
         """
+        # TODO: DEPRECATED
+        raise ValueError("REMOVE ME")
         verifierObject = self._get_TokenRequest_by_verifier(
             request.verifier, request=request
         )

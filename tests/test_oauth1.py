@@ -1,9 +1,4 @@
-from __future__ import print_function
-
 # stdlib
-from functools import partial
-import json
-import pdb
 import re
 import unittest
 
@@ -12,22 +7,18 @@ import requests
 import responses
 import sqlalchemy
 from twython.compat import parse_qsl
-
-# pyramid
-from pyramid import testing
 from webtest import TestApp
-import webtest.app
 
 # local
-from ._utils import FakeRequest
-from ._utils import parse_request_simple
-from ._utils import IsolatedTestapp
+from pyramid_oauthlib_lowlevel.utils import string_headers
 from . import oauth1_model
 from . import oauth1_utils
-from .oauth1_model import OAUTH1__URL_AUTHORITY_AUTHENTICATE
+from ._utils import FakeRequest
+from ._utils import IsolatedTestapp
+from ._utils import parse_request_simple
 from .oauth1_model import OAUTH1__URL_APP_FLOW_REGISTER_CALLBACK
 from .oauth1_model import OAUTH1__URL_APP_FLOW_REGISTER_CALLBACK_SUCCESS
-from pyramid_oauthlib_lowlevel.utils import string_headers
+from .oauth1_model import OAUTH1__URL_AUTHORITY_AUTHENTICATE
 
 
 # ==============================================================================
@@ -317,7 +308,6 @@ class PyramidTestApp(unittest.TestCase):
             return (int(res.status.split(" ")[0]), res.headers, res.body)
 
         with responses.RequestsMock() as rsps:
-
             rsps.add_callback(
                 responses.GET,
                 oauth1_utils.CustomApiClient.OAUTH1_SERVER_REQUEST_TOKEN,  # /authority/oauth1/request_token
@@ -523,7 +513,6 @@ class PyramidTestApp(unittest.TestCase):
 
 class TestOauth1Faked(unittest.TestCase):
     def test_request_token(self):
-
         req = new_req_session()
         req.current_route_url(
             uri=oauth1_utils.CustomApiClient.OAUTH1_SERVER_REQUEST_TOKEN
@@ -611,5 +600,5 @@ class TestOauth1Faked(unittest.TestCase):
         assert result.status_code == 500
         assert (
             result.text
-            == u"error=internal_system_failure&error_description=Internal+System+Failure"
+            == "error=internal_system_failure&error_description=Internal+System+Failure"
         )

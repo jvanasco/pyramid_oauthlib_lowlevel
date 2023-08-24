@@ -1,49 +1,43 @@
-from __future__ import print_function
-import logging
-
-log = logging.getLogger(__name__)
-
 """
 fake app for tests
 """
 
 # stdlib
-import os
-import pdb
-import logging
 import datetime
+import logging
+import os
 
 # pyramid
-from pyramid.renderers import render_to_response
-from pyramid.view import view_config
-from pyramid.csrf import get_csrf_token
-from pyramid.httpexceptions import HTTPException
-from pyramid.httpexceptions import HTTPSeeOther
-from pyramid.httpexceptions import HTTPBadRequest
-from pyramid.httpexceptions import HTTPForbidden
-from pyramid.authentication import extract_http_basic_credentials
-
-# local
-from ..oauth2_model import USERID_ACTIVE__APPLICATION
-from ..oauth2_model import USERID_ACTIVE__AUTHORITY
-from ..oauth2_model import OAUTH2__APP_KEY
-from ..oauth2_model import OAUTH2__APP_SECRET
-from ..oauth2_model import Developer_OAuth2Server_BearerToken
-from ..oauth2_model import Developer_OAuth2Client_BearerToken
-from ..oauth2_utils import new_oauth2Provider
-from ..oauth2_utils import new_oauth2ProviderLimited
-from .. import oauth2_model
-from .. import oauth2_utils
-
-# pypi
+from formencode import Schema as form_Schema
+from formencode.validators import OneOf as form_OneOf
+from formencode.validators import UnicodeString as form_UnicodeString
 from oauthlib.oauth2.rfc6749.errors import OAuth2Error
 from oauthlib.oauth2.rfc6749.tokens import OAuth2Token
+from pyramid.authentication import extract_http_basic_credentials
+from pyramid.csrf import get_csrf_token
+from pyramid.httpexceptions import HTTPException
+from pyramid.httpexceptions import HTTPForbidden
+from pyramid.httpexceptions import HTTPSeeOther
+from pyramid.renderers import render_to_response
+from pyramid.view import view_config
 import pyramid_formencode_classic as formhandling
-from formencode import Schema as form_Schema
-from formencode.validators import UnicodeString as form_UnicodeString
-from formencode.validators import OneOf as form_OneOf
 from requests_oauthlib import OAuth2Session
-import oauthlib
+
+# local
+from .. import oauth2_model
+from .. import oauth2_utils
+from ..oauth2_model import Developer_OAuth2Client_BearerToken
+from ..oauth2_model import Developer_OAuth2Server_BearerToken
+from ..oauth2_model import OAUTH2__APP_KEY
+from ..oauth2_model import OAUTH2__APP_SECRET
+from ..oauth2_model import USERID_ACTIVE__APPLICATION
+from ..oauth2_model import USERID_ACTIVE__AUTHORITY
+from ..oauth2_utils import new_oauth2Provider
+from ..oauth2_utils import new_oauth2ProviderLimited
+
+# ==============================================================================
+
+log = logging.getLogger(__name__)
 
 # ==============================================================================
 
@@ -198,7 +192,6 @@ class Authority_Oauth2_FlowA_API_Public(Handler):
             oauth2Provider = new_oauth2Provider(self.request)
 
             if self.request.method == "GET":
-
                 # this is decorated by `catch_errors_and_unavailability` and will raise an `OAuth2Error`
                 validity_dict = (
                     oauth2Provider.endpoint__validate_authorization_request()
@@ -208,7 +201,6 @@ class Authority_Oauth2_FlowA_API_Public(Handler):
                 return self._authorization__print()
 
             elif self.request.method == "POST":
-
                 try:
                     (result, formStash) = formhandling.form_validate(
                         self.request,
@@ -786,7 +778,7 @@ class ExampleApp_FlowRegister(Handler):
             return HTTPSeeOther("/application/account/home")
 
         _state = self.request.params.get("state")
-        _code = self.request.params.get("code")
+        # _code = self.request.params.get("code")
 
         # logging.basicConfig()
         # logging.getLogger().setLevel(logging.DEBUG)
@@ -831,7 +823,7 @@ class ExampleApp_FlowRegister(Handler):
                 location="/application/flow-register/authorized-callback-success"
             )
 
-        except:
+        except Exception:
             raise
 
     @view_config(

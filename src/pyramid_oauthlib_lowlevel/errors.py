@@ -1,3 +1,9 @@
+# stdlib
+from typing import Optional
+
+# ==============================================================================
+
+
 class BackendError(Exception):
     """
     this is used to catch generic backend failures and correctly log/handle them
@@ -7,11 +13,15 @@ class BackendError(Exception):
     this must derive from the Base exception, otherwise it will not be caught correctly
     """
 
-    error = "internal_system_failure"  # error code
-    description = "Internal System Failure"  # human version
-    wrapped_exception = None
+    error: str = "internal_system_failure"  # error code
+    description: str = "Internal System Failure"  # human version
+    wrapped_exception: Optional[Exception] = None
 
-    def __init__(self, description=None, wrapped_exception=None):
+    def __init__(
+        self,
+        description: Optional[str] = None,
+        wrapped_exception: Optional[Exception] = None,
+    ):
         """
         description:    A human-readable ASCII [USASCII] text providing
                         additional information, used to assist the client

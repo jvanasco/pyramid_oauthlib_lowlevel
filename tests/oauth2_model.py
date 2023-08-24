@@ -26,15 +26,14 @@ The following will refer to the model elements as `Object(tablename)`
 
 
 """
+# stdlib
+import datetime
 
 # pypi
 import sqlalchemy as sa
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.schema import MetaData
 
-# stdlib
-import datetime
-
+# ==============================================================================
 
 # we'll use these in a few places...
 OAUTH2__APP_KEY = "OAUTH2APPKEYOAUTH2APPKEYOAUTH2APPKEYOAUTH2APPKEY"

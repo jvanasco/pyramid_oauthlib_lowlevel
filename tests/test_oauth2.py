@@ -1,31 +1,22 @@
-from __future__ import print_function
-
-import logging
-
-log = logging.getLogger(__name__)
-
 # stdlib
-import pdb
+import logging
 import re
 import unittest
 
 # pypi
-from requests_oauthlib import OAuth2Session
+import requests
+import responses
 from twython.compat import parse_qsl
 from webtest import TestApp
-import requests
-import requests_oauthlib
-import responses
 
-# local
-from . import oauth2_app
+# local package
+from pyramid_oauthlib_lowlevel.client.api_client import ApiError
+from pyramid_oauthlib_lowlevel.utils import string_headers
 from . import oauth2_model
 from . import oauth2_utils
-from ._utils import FakeRequest
-from ._utils import IsolatedTestapp
 from ._utils import parse_request_simple
-from pyramid_oauthlib_lowlevel.client.api_client import ApiError, ApiAuthError
-from pyramid_oauthlib_lowlevel.utils import string_headers
+
+log = logging.getLogger(__name__)
 
 
 # ==============================================================================
@@ -94,8 +85,8 @@ class PyramidTestApp(unittest.TestCase):
         }
 
         # Credentials you get from registering a new application
-        client_id = oauth2_model.OAUTH2__APP_KEY
-        client_secret = oauth2_model.OAUTH2__APP_SECRET
+        # client_id = oauth2_model.OAUTH2__APP_KEY
+        # client_secret = oauth2_model.OAUTH2__APP_SECRET
 
         def callback__authorization_base_url(req):
             """/authority/oauth2/flow-a/authorization is visited by the USER_BROWSER"""
@@ -700,7 +691,6 @@ class PyramidTestApp(unittest.TestCase):
             return (int(res.status.split(" ")[0]), res.headers, res.body)
 
         with responses.RequestsMock() as rsps:
-
             rsps.add_callback(
                 responses.POST,
                 apiClient._url_obtain_token,  # https://authority.example.com/authority/oauth2/flow-b/obtain_token

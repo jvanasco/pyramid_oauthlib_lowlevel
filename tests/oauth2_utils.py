@@ -1,39 +1,34 @@
 # stdlib
-import pdb
 import datetime
 
 # pypi
+from oauthlib.oauth2 import WebApplicationServer
 import sqlalchemy
 import sqlalchemy.orm
-from oauthlib.oauth2 import Server
-from oauthlib.oauth2 import WebApplicationServer
 
-
-# local module
-from pyramid_oauthlib_lowlevel.oauth2.validator import OAuth2RequestValidator_Hooks
-from pyramid_oauthlib_lowlevel.oauth2.validator import OAuth2RequestValidator
-from pyramid_oauthlib_lowlevel.oauth2 import provider as oauth2_provider
-from pyramid_oauthlib_lowlevel.utils import catch_backend_failure
+# local
 from pyramid_oauthlib_lowlevel.client.api_client import ApiClient
-
-# local tests
-from .oauth2_model import DeveloperApplication
-from .oauth2_model import DeveloperApplication_Keyset
+from pyramid_oauthlib_lowlevel.oauth2 import provider as oauth2_provider
+from pyramid_oauthlib_lowlevel.oauth2.validator import OAuth2RequestValidator
+from pyramid_oauthlib_lowlevel.oauth2.validator import OAuth2RequestValidator_Hooks
+from pyramid_oauthlib_lowlevel.utils import catch_backend_failure
 from .oauth2_model import Developer_OAuth2Server_BearerToken
 from .oauth2_model import Developer_OAuth2Server_GrantToken
-from .oauth2_model import OAUTH2__APP_ID
-from .oauth2_model import OAUTH2__APP_KEY
-from .oauth2_model import OAUTH2__APP_SECRET
+from .oauth2_model import DeveloperApplication
+from .oauth2_model import DeveloperApplication_Keyset
 from .oauth2_model import OAUTH2__URL_APP_FLOW_REGISTER_CALLBACK
 from .oauth2_model import OAUTH2__URL_AUTHORITY_FLOWA_AUTHORIZATION
 from .oauth2_model import OAUTH2__URL_AUTHORITY_FLOWA_TOKEN
-from .oauth2_model import OAUTH2__URL_AUTHORITY_REVOKE_TOKEN
 from .oauth2_model import OAUTH2__URL_AUTHORITY_FLOWB_TOKEN
 from .oauth2_model import OAUTH2__URL_AUTHORITY_FLOWB_TOKEN_ALT
 from .oauth2_model import OAUTH2__URL_AUTHORITY_FLOWC_TOKEN_LIMITED
-from .oauth2_model import OAUTH2__URL_AUTHORITY_PROTECTED_RESOURCE
-from .oauth2_model import OAUTH2__URL_APP_FETCH_PROTECTED_RESOURCE
+from .oauth2_model import OAUTH2__URL_AUTHORITY_REVOKE_TOKEN
 
+# from .oauth2_model import OAUTH2__APP_ID
+# from .oauth2_model import OAUTH2__APP_KEY
+# from .oauth2_model import OAUTH2__APP_SECRET
+# from .oauth2_model import OAUTH2__URL_APP_FETCH_PROTECTED_RESOURCE
+# from .oauth2_model import OAUTH2__URL_AUTHORITY_PROTECTED_RESOURCE
 
 # ==============================================================================
 
@@ -78,7 +73,6 @@ class CustomValidator(OAuth2RequestValidator):
 
 
 class CustomValidator_Hooks(OAuth2RequestValidator_Hooks):
-
     #
     # client getter
     #

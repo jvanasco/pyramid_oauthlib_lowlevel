@@ -1,23 +1,17 @@
 """
 fake app for tests
 """
-import logging
-
-log = logging.getLogger(__name__)
-
 # stdlib
 import datetime
+import logging
 
-# pyramid
+# pypi
 from pyramid.config import Configurator
 from pyramid.session import SignedCookieSessionFactory
 
-# pypi
-import sqlalchemy
+# ==============================================================================
 
-# local
-from .. import oauth1_model
-
+log = logging.getLogger(__name__)
 
 # ==============================================================================
 

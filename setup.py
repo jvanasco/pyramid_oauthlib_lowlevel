@@ -24,13 +24,8 @@ requires = [
     "pyramid",
     "requests_oauthlib",
     "requests",
-    "six",
+    "twython",
 ]
-if sys.version_info[0] == 2:
-    # last known twython version to support py27
-    requires.append("twython==3.7.0")
-else:
-    requires.append("twython")
 tests_require = [
     "pyramid_formencode_classic",
     "pyramid_mako",
@@ -58,8 +53,13 @@ setup(
         "Intended Audience :: Developers",
         "Framework :: Pyramid",
         "Programming Language :: Python",
-        "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "License :: OSI Approved :: BSD License",
     ],
     keywords="web pyramid oauth oauthlib",
@@ -69,6 +69,7 @@ setup(
         where="src",
     ),
     package_dir={"": "src"},
+    package_data={"pyramid_oauthlib_lowlevel": ["py.typed"]},
     include_package_data=True,
     zip_safe=False,
     install_requires=requires,

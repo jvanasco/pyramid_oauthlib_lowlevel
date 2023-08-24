@@ -1,17 +1,25 @@
+# stdlib
 import logging
+from typing import Dict
+from typing import Iterable
+from typing import List
+from typing import Optional
+from typing import Tuple
+from typing import TYPE_CHECKING
 
-log = logging.getLogger(__name__)
-
-
-# pypi, upstream
+# pypi
 from oauthlib.oauth1 import RequestValidator
-
-# from oauthlib.oauth1 import WebApplicationServer as Server
-from oauthlib.common import to_unicode
-
-# from oauthlib.common import add_params_to_uri, urlencode
 from oauthlib.oauth1.rfc5849 import errors
 
+# from oauthlib.oauth1 import WebApplicationServer as Server
+# from oauthlib.common import add_params_to_uri, urlencode
+
+if TYPE_CHECKING:
+    from oauthlib.common import Request as oAuth_Request
+    from pyramid.request import Request as Pyramid_Request
+
+
+log = logging.getLogger(__name__)
 
 # ==============================================================================
 
@@ -23,15 +31,22 @@ class OAuth1RequestValidator_Hooks(object):
     This class encapsulates all the database access you should require.
     """
 
-    pyramid_request = None  # stash the pyramid request object
+    pyramid_request: "Pyramid_Request"  # stash the pyramid request object
 
-    def __init__(self, pyramid_request):
+    def __init__(
+        self,
+        pyramid_request: "Pyramid_Request",
+    ):
         self.pyramid_request = pyramid_request
         self._config = pyramid_request.registry.settings or {}
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    def ensure_request_client(self, request, client_key):
+    def ensure_request_client(
+        self,
+        request: "oAuth_Request",
+        client_key: str,
+    ) -> None:
         """
         This is a utility method based on the flask-oauthlib implementation.
         It is used to ensure a request.client object based on the client_key
@@ -48,7 +63,7 @@ class OAuth1RequestValidator_Hooks(object):
     #
     # client getter
     #
-    def client_getter(self, client_key=None):
+    def client_getter(self, client_key: Optional[str] = None):
         """
         Retreive a valid client
 
@@ -113,7 +128,13 @@ class OAuth1RequestValidator_Hooks(object):
         """
         raise NotImplementedError("Subclasses must implement this function.")
 
-    def create_access_token_existing(self, request, credentials):
+    def create_access_token_existing(
+        self,
+        request: "oAuth_Request",
+        credentials,
+    ):
+        # TODO: DEPRECATED
+        raise ValueError("REMOVE ME")
         """
         THIS IS A DEV; NOT IMPLEMENTED IN MAIN
         """
@@ -290,14 +311,18 @@ class OAuth1RequestValidator(RequestValidator):
         * @safe_characters -> (character set)
     """
 
-    request = None
-    _config = None
-    _config_prefix = "oauth1.provider."
-    _api_hooks = None
+    request: Optional["oAuth_Request"] = None
+    _config: Dict
+    _config_prefix: str = "oauth1.provider."
+    _api_hooks: OAuth1RequestValidator_Hooks
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    def __init__(self, pyramid_request, validator_api_hooks=None):
+    def __init__(
+        self,
+        pyramid_request: "Pyramid_Request",
+        validator_api_hooks=None,
+    ):
         """Builds a new RequestValidator
 
         :param pyramid_request: pyramid `request` object.
@@ -307,7 +332,12 @@ class OAuth1RequestValidator(RequestValidator):
         self._config = pyramid_request.registry.settings or {}
         self._api_hooks = validator_api_hooks
 
-    def _get_RequestTokenObject(self, request, token, client_key=None):
+    def _get_RequestTokenObject(
+        self,
+        request: "oAuth_Request",
+        token: str,
+        client_key: Optional[str] = None,
+    ):
         """
         :param token: a `token` string.
         :param client_key: a `client_key` string, optional.
@@ -327,17 +357,19 @@ class OAuth1RequestValidator(RequestValidator):
             if tokenObj:
                 if client_key is None or (client_key == tokenObj.client_key):
                     # set the token object
-                    request.RequestTokenObject = tokenObj
+                    # TODO: typing: is there a better way to handle this?
+                    # note: we are stashing this for our own use
+                    request.RequestTokenObject = tokenObj  # type: ignore[attr-defined]
                 else:
                     tokenObj = None
             return tokenObj
-        except Exception as exc:
+        except Exception:
             raise
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @property
-    def allowed_signature_methods(self):
+    def allowed_signature_methods(self) -> Tuple[str, ...]:
         """Allowed signature methods.
 
         Default value: SIGNATURE_HMAC and SIGNATURE_RSA.
@@ -352,7 +384,7 @@ class OAuth1RequestValidator(RequestValidator):
         )
 
     @property
-    def client_key_length(self):
+    def client_key_length(self) -> Tuple[int, int]:
         """defaults to oauthlib.oauth1.RequestValidator.client_key_length if not configured"""
         return self._config.get(
             "%sCLIENT_KEY_LENGTH" % self._config_prefix,
@@ -360,7 +392,7 @@ class OAuth1RequestValidator(RequestValidator):
         )
 
     @property
-    def request_token_length(self):
+    def request_token_length(self) -> Tuple[int, int]:
         """defaults to oauthlib.oauth1.RequestValidator.request_token_length if not configured"""
         return self._config.get(
             "%sREQUEST_TOKEN_LENGTH" % self._config_prefix,
@@ -368,7 +400,7 @@ class OAuth1RequestValidator(RequestValidator):
         )
 
     @property
-    def access_token_length(self):
+    def access_token_length(self) -> Tuple[int, int]:
         """defaults to oauthlib.oauth1.RequestValidator.access_token_length if not configured"""
         return self._config.get(
             "%sACCESS_TOKEN_LENGTH" % self._config_prefix,
@@ -376,7 +408,7 @@ class OAuth1RequestValidator(RequestValidator):
         )
 
     @property
-    def nonce_length(self):
+    def nonce_length(self) -> Tuple[int, int]:
         """defaults to oauthlib.oauth1.RequestValidator.nonce_length if not configured"""
         return self._config.get(
             "%sNONCE_LENGTH" % self._config_prefix,
@@ -384,7 +416,7 @@ class OAuth1RequestValidator(RequestValidator):
         )
 
     @property
-    def verifier_length(self):
+    def verifier_length(self) -> Tuple[int, int]:
         """defaults to oauthlib.oauth1.RequestValidator.verifier_length if not configured"""
         return self._config.get(
             "%sVERIFIER_LENGTH" % self._config_prefix,
@@ -392,14 +424,14 @@ class OAuth1RequestValidator(RequestValidator):
         )
 
     @property
-    def realms(self):
+    def realms(self) -> List[str]:
         """defaults to oauthlib.oauth1.RequestValidator.realms if not configured"""
         return self._config.get(
             "%sREALMS" % self._config_prefix, super(OAuth1RequestValidator, self).realms
         )
 
     @property
-    def enforce_ssl(self):
+    def enforce_ssl(self) -> bool:
         """
         Enforce SSL request.
 
@@ -410,18 +442,22 @@ class OAuth1RequestValidator(RequestValidator):
         return self._config.get("%sENFORCE_SSL" % self._config_prefix, True)
 
     @property
-    def dummy_client(self):
-        return to_unicode("dummy_client", "utf-8")
+    def dummy_client(self) -> str:
+        return "dummy_client"
 
     @property
-    def dummy_request_token(self):
-        return to_unicode("dummy_request_token", "utf-8")
+    def dummy_request_token(self) -> str:
+        return "dummy_request_token"
 
     @property
-    def dummy_access_token(self):
-        return to_unicode("dummy_access_token", "utf-8")
+    def dummy_access_token(self) -> str:
+        return "dummy_access_token"
 
-    def get_client_secret(self, client_key, request):
+    def get_client_secret(
+        self,
+        client_key: str,
+        request: "oAuth_Request",
+    ) -> str:
         """
         Retrieves the client secret associated with the client key
 
@@ -434,11 +470,16 @@ class OAuth1RequestValidator(RequestValidator):
         """
         log.debug("OAuth1RequestValidator.get_client_secret(%r)", client_key)
         self._api_hooks.ensure_request_client(request, client_key=client_key)
-        if request.client:
-            return request.client.client_secret
+        # we are now ensured a Client; otherwise `errors.InvalidClientError`
+        return request.client.client_secret
         return None
 
-    def get_request_token_secret(self, client_key, token, request):
+    def get_request_token_secret(
+        self,
+        client_key: str,
+        token: str,
+        request: "oAuth_Request",
+    ) -> str:
         """
         Retrieves the shared secret associated with the request token.
 
@@ -456,9 +497,14 @@ class OAuth1RequestValidator(RequestValidator):
         tok = self._get_RequestTokenObject(request, token, client_key=client_key)
         if tok and tok.client_key == client_key:
             return tok.secret
-        return None
+        raise errors.InvalidRequestError("Invalid client_key or token")
 
-    def get_access_token_secret(self, client_key, token, request):
+    def get_access_token_secret(
+        self,
+        client_key: str,
+        token: str,
+        request: "oAuth_Request",
+    ) -> str:
         """
         Retrieves the shared secret associated with the access token.
 
@@ -479,9 +525,13 @@ class OAuth1RequestValidator(RequestValidator):
         if tok:
             request.access_token = tok
             return tok.secret
-        return None
+        raise errors.InvalidRequestError("Invalid client_key or access_token")
 
-    def get_default_realms(self, client_key, request):
+    def get_default_realms(
+        self,
+        client_key: str,
+        request: "oAuth_Request",
+    ) -> List:
         """
         Get the default realms for a client.
 
@@ -499,7 +549,11 @@ class OAuth1RequestValidator(RequestValidator):
             return request.client.default_realms
         return []
 
-    def get_realms(self, token, request):
+    def get_realms(
+        self,
+        token: str,
+        request: "oAuth_Request",
+    ) -> List:
         """
         Get realms associated with a request token.
 
@@ -516,7 +570,11 @@ class OAuth1RequestValidator(RequestValidator):
             return tok.realms or []
         return []
 
-    def get_redirect_uri(self, token, request):
+    def get_redirect_uri(
+        self,
+        token: str,
+        request: "oAuth_Request",
+    ) -> str:
         """
         Get the redirect URI associated with a request token.
 
@@ -529,7 +587,11 @@ class OAuth1RequestValidator(RequestValidator):
         tok = self._get_RequestTokenObject(request, token)
         return tok.redirect_uri
 
-    def get_rsa_key(self, client_key, request):
+    def get_rsa_key(
+        self,
+        client_key: str,
+        request: "oAuth_Request",
+    ) -> str:
         """
         Retrieves a previously stored client provided RSA key.
 
@@ -542,9 +604,14 @@ class OAuth1RequestValidator(RequestValidator):
         self._api_hooks.ensure_request_client(request, client_key=client_key)
         if hasattr(request.client, "rsa_key"):
             return request.client.rsa_key
-        return None
+        raise errors.InvalidRequestError("Invalid client_key or other")
 
-    def invalidate_request_token(self, client_key, request_token, request):
+    def invalidate_request_token(
+        self,
+        client_key: str,
+        request_token: str,
+        request: "oAuth_Request",
+    ) -> None:
         """
         Invalidates a used request token.
 
@@ -561,7 +628,11 @@ class OAuth1RequestValidator(RequestValidator):
         )
         self._api_hooks.request_token_invalidator(request, client_key, request_token)
 
-    def validate_client_key(self, client_key, request):
+    def validate_client_key(
+        self,
+        client_key: str,
+        request: "oAuth_Request",
+    ) -> bool:
         """
         Validates that supplied client key is a registered and valid client.
 
@@ -576,7 +647,12 @@ class OAuth1RequestValidator(RequestValidator):
             return True
         return False
 
-    def validate_request_token(self, client_key, token, request):
+    def validate_request_token(
+        self,
+        client_key: str,
+        token: str,
+        request: "oAuth_Request",
+    ) -> bool:
         """
         Validates that supplied request token is registered and valid.
 
@@ -594,7 +670,12 @@ class OAuth1RequestValidator(RequestValidator):
             return True
         return False
 
-    def validate_access_token(self, client_key, token, request):
+    def validate_access_token(
+        self,
+        client_key: str,
+        token: str,
+        request: "oAuth_Request",
+    ) -> bool:
         """
         Validates that supplied access token is registered and valid.
 
@@ -617,13 +698,13 @@ class OAuth1RequestValidator(RequestValidator):
 
     def validate_timestamp_and_nonce(
         self,
-        client_key,
-        timestamp,
-        nonce,
-        request,
-        request_token=None,
-        access_token=None,
-    ):
+        client_key: str,
+        timestamp: str,
+        nonce: str,
+        request: "oAuth_Request",
+        request_token: Optional[str] = None,
+        access_token: Optional[str] = None,
+    ) -> bool:
         """
         Validates that the nonce has not been used before.
 
@@ -668,7 +749,12 @@ class OAuth1RequestValidator(RequestValidator):
         )
         return True
 
-    def validate_redirect_uri(self, client_key, redirect_uri, request):
+    def validate_redirect_uri(
+        self,
+        client_key: str,
+        redirect_uri: str,
+        request: "oAuth_Request",
+    ) -> bool:
         """
         Validates the client supplied redirection URI.
 
@@ -692,7 +778,12 @@ class OAuth1RequestValidator(RequestValidator):
         request.redirect_uri = redirect_uri
         return redirect_uri in request.client.redirect_uris
 
-    def validate_requested_realms(self, client_key, realms, request):
+    def validate_requested_realms(
+        self,
+        client_key: str,
+        realms: List,
+        request: "oAuth_Request",
+    ) -> bool:
         """
         Validates that the client may request access to the realm.
 
@@ -720,7 +811,14 @@ class OAuth1RequestValidator(RequestValidator):
             return True
         return True
 
-    def validate_realms(self, client_key, token, request, uri=None, realms=None):
+    def validate_realms(
+        self,
+        client_key: str,
+        token: str,
+        request: "oAuth_Request",
+        uri=None,
+        realms=None,
+    ) -> bool:
         """
         Validates access to the request realm.
 
@@ -745,7 +843,13 @@ class OAuth1RequestValidator(RequestValidator):
             return False
         return set(tok.realms).issuperset(set(realms))
 
-    def validate_verifier(self, client_key, token, verifier, request):
+    def validate_verifier(
+        self,
+        client_key: str,
+        token: str,
+        verifier: str,
+        request: "oAuth_Request",
+    ) -> bool:
         """
         Validates a verification code.
 
@@ -774,7 +878,11 @@ class OAuth1RequestValidator(RequestValidator):
             return data.client_key == client_key
         return True
 
-    def verify_request_token(self, token, request):
+    def verify_request_token(
+        self,
+        token: str,
+        request: "oAuth_Request",
+    ) -> bool:
         """
         Verify that the given OAuth1 request token is valid.
 
@@ -789,7 +897,12 @@ class OAuth1RequestValidator(RequestValidator):
             return True
         return False
 
-    def verify_realms(self, token, realms, request):
+    def verify_realms(
+        self,
+        token: str,
+        realms: List,
+        request: "oAuth_Request",
+    ) -> bool:
         """
         Verify authorized realms to see if they match those given to token.
 
@@ -808,7 +921,11 @@ class OAuth1RequestValidator(RequestValidator):
             return True
         return set(tok.realms) == set(realms)
 
-    def save_access_token(self, token, request):
+    def save_access_token(
+        self,
+        token: str,
+        request: "oAuth_Request",
+    ) -> None:
         """
         Save an OAuth1 access token.
 
@@ -824,7 +941,11 @@ class OAuth1RequestValidator(RequestValidator):
         log.debug("OAuth1RequestValidator.save_access_token(%r)", token)
         self._api_hooks.access_token_setter(token, request)
 
-    def save_request_token(self, token, request):
+    def save_request_token(
+        self,
+        token: str,
+        request: "oAuth_Request",
+    ) -> None:
         """
         Save an OAuth1 request token.
 
@@ -844,7 +965,12 @@ class OAuth1RequestValidator(RequestValidator):
         log.debug("OAuth1RequestValidator.save_request_token(%r)", token)
         self._api_hooks.request_token_setter(token, request)
 
-    def save_verifier(self, token, verifier, request):
+    def save_verifier(
+        self,
+        token: str,
+        verifier: str,
+        request: "oAuth_Request",
+    ) -> None:
         """
         Associate an authorization verifier with a request token.
 
@@ -867,7 +993,13 @@ class OAuth1RequestValidator(RequestValidator):
         log.debug("OAuth1RequestValidator.save_verifier(%r, %r)", token, verifier)
         self._api_hooks.verifier_setter(token=token, verifier=verifier, request=request)
 
-    def create_access_token_existing(self, request, credentials):
+    def create_access_token_existing(
+        self,
+        request: "oAuth_Request",
+        credentials: str,
+    ) -> Optional[Dict]:
+        # TODO: DEPRECATED
+        raise ValueError("REMOVE ME")
         """
         THIS IS A DEV; NOT IMPLEMENTED IN MAIN
 
