@@ -11,7 +11,6 @@ from typing import Union
 # from typing import TYPE_CHECKING
 
 # pypi
-from oauthlib.common import Request as oAuth_Request
 from pyramid.httpexceptions import HTTPSeeOther
 from pyramid.request import Request
 from pyramid.response import Response

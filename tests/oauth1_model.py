@@ -6,6 +6,7 @@ import datetime
 # pypi
 import sqlalchemy as sa
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.declarative import DeclarativeMeta
 
 # ==============================================================================
 
@@ -44,7 +45,7 @@ USERID_ACTIVE__AUTHORITY = 42
 
 # mymetadata = MetaData()
 # Base = declarative_base(metadata=mymetadata)
-Base = declarative_base()
+Base: DeclarativeMeta = declarative_base()
 
 
 # ==============================================================================

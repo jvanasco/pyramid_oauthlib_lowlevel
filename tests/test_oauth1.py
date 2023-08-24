@@ -1,12 +1,12 @@
 # stdlib
 import re
 import unittest
+from urllib.parse import parse_qsl
 
 # pypi
 import requests
 import responses
 import sqlalchemy
-from twython.compat import parse_qsl
 from webtest import TestApp
 
 # local

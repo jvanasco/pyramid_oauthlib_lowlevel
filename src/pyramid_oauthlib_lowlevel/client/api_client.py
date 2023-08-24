@@ -56,17 +56,23 @@ class ApiClient(object):
 
     _user_agent = "PyramidOAuthlibLowlevel v0"
 
-    # override these in a subclass
-    OAUTH1_SERVER_ACCESS_TOKEN = None
-    OAUTH1_SERVER_REQUEST_TOKEN = None
-    OAUTH1_SERVER_AUTHENTICATE = None
+    #
+    # define these in a subclass
+    #
 
+    # oAuth1 - URLs
+    OAUTH1_SERVER_AUTHENTICATE: str
+    OAUTH1_SERVER_ACCESS_TOKEN: str
+    OAUTH1_SERVER_REQUEST_TOKEN: str
+
+    # oAuth2 - URLs
+    _url_obtain_token: str
+    _url_revoke_token: str
+    #
     OAUTH2_SERVER_AUTH = "NotImplementedYet"
     OAUTH2_SERVER_TOKEN = "NotImplementedYet"
-
-    oauth_version = None
-    _url_obtain_token = None
-    _url_revoke_token = None
+    #
+    oauth_version: int
 
     def __init__(
         self,
