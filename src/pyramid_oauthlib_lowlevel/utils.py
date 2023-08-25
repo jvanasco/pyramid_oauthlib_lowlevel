@@ -75,11 +75,26 @@ def oauth1_to_pyramid_Response(ret) -> Response:
     return Response(**kwargs)
 
 
-def string_headers(headers: Dict):
-    return {
-        native_(name, encoding="latin-1"): native_(value, encoding="latin-1")
-        for name, value in headers.items()
-    }
+def string_headers(headers: Dict) -> Dict:
+    rval: Dict = {}
+    for name, value in headers.items():
+        if isinstance(name, bytes):
+            name = name.decode("latin-1")
+        if isinstance(value, bytes):
+            value = value.decode("latin-1")
+        rval[name] = value
+    return rval
+
+
+def bytes_headers(headers: Dict) -> Dict:
+    rval: Dict = {}
+    for name, value in headers.items():
+        if isinstance(name, str):
+            name = name.encode()
+        if isinstance(value, str):
+            value = value.encode()
+        rval[name] = value
+    return rval
 
 
 def create_response(headers: Dict, body: str, status: int) -> Response:

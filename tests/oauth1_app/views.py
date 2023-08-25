@@ -142,7 +142,10 @@ class Authority_Oauth1_FlowShared_API_Public(Handler):
         if LOG_ROUTE:
             log.debug("authority:oauth1:access_token %s", get_csrf_token(self.request))
         if DEBUG_USERID:
-            print("authority:oauth1:access_token", self.request.active_useraccount_id)
+            print(
+                "authority:oauth1:access_token: UserID",
+                self.request.active_useraccount_id,
+            )
         try:
             provider = new_oauth1Provider(self.request)
             return provider.endpoint__access_token()
@@ -175,7 +178,7 @@ class Authority_Oauth1_FlowShared_API_Public(Handler):
                 .filter(
                     Developer_oAuth1Server_TokenRequest.oauth_token
                     == oauth1_data["credentials"]["resource_owner_key"],
-                    Developer_oAuth1Server_TokenRequest.is_active == True,  # noqa
+                    Developer_oAuth1Server_TokenRequest.is_active.is_(True),
                 )
                 .first()
             )
@@ -481,7 +484,7 @@ class ExampleApp_FlowRegister(Handler):
             .filter(
                 Developer_oAuth1Client_TokenAccess.useraccount_id
                 == USERID_ACTIVE__APPLICATION,
-                Developer_oAuth1Client_TokenAccess.is_active == True,  # noqa
+                Developer_oAuth1Client_TokenAccess.is_active.is_(True),
             )
             .all()
         )
@@ -493,7 +496,7 @@ class ExampleApp_FlowRegister(Handler):
             .filter(
                 Developer_oAuth1Server_TokenAccess.useraccount_id
                 == USERID_ACTIVE__AUTHORITY,
-                Developer_oAuth1Server_TokenAccess.is_active == True,  # noqa
+                Developer_oAuth1Server_TokenAccess.is_active.is_(True),
             )
             .all()
         )

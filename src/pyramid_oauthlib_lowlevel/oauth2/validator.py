@@ -183,6 +183,7 @@ class OAuth2RequestValidator_Hooks(object):
         self,
         access_token: Optional[str] = None,
         refresh_token: Optional[str] = None,
+        debug: Optional[str] = None,
     ) -> Any:
         """
         This method accepts an `access_token` or `refresh_token` parameters,
@@ -197,10 +198,15 @@ class OAuth2RequestValidator_Hooks(object):
 
         :param access_token: Unicode access token
         :param refresh_token: Unicode refresh token
+        :param debug: optional string for debugging
         """
         raise NotImplementedError("Subclasses must implement this function.")
 
-    def token_revoke(self, tokenObject):
+    def token_revoke(
+        self,
+        tokenObject,
+        debug: Optional[str] = None,
+    ):
         """
         This method expects a `tokenObject` as a single argument.
 
@@ -217,6 +223,7 @@ class OAuth2RequestValidator_Hooks(object):
                 self.pyramid_request.dbSession.flush()
 
         :param tokenObject: The grant object loaded by ``token_getter```
+        :param debug: optional string for debugging
         """
         raise NotImplementedError("Subclasses must implement this function.")
 
@@ -598,13 +605,29 @@ class OAuth2RequestValidator(RequestValidator):
         Method is used by:
             - Revocation Endpoint
         """
+        print("OAuth2RequestValidator.revoke_token")
+        print("> .token", token)
+        print("> .token_type_hint", token_type_hint)
         if token_type_hint:
-            tokenObject = self._api_hooks.token_getter(**{token_type_hint: token})
+            print("A")
+            tokenObject = self._api_hooks.token_getter(
+                **{token_type_hint: token}, debug="revoke_token"
+            )
+            print("  > A", tokenObject)
         else:
-            tokenObject = self._api_hooks.token_getter(access_token=token)
+            print("B")
+            tokenObject = self._api_hooks.token_getter(
+                access_token=token, debug="revoke_token"
+            )
+            print("  > B", tokenObject)
             if not tokenObject:
-                tokenObject = self._api_hooks.token_getter(refresh_token=token)
+                print("C")
+                tokenObject = self._api_hooks.token_getter(
+                    refresh_token=token, debug="revoke_token"
+                )
+                print("  > C", tokenObject)
 
+        print("D")
         if tokenObject:
             request.client_id = tokenObject.client_id
             request.user = tokenObject.user

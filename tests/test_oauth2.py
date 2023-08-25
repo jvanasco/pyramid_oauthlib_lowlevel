@@ -1,5 +1,6 @@
 # stdlib
 import logging
+import os
 import re
 import unittest
 from urllib.parse import parse_qsl
@@ -17,6 +18,8 @@ from . import oauth2_utils
 from ._utils import parse_request_simple
 
 log = logging.getLogger(__name__)
+
+DEBUG_LOGIC = bool(int(os.getenv("PYRAMID_OAUTHLIB_LOWLEVEL__DEBUG_LOGIC", 0)))
 
 
 # ==============================================================================
@@ -43,6 +46,13 @@ class PyramidTestApp(unittest.TestCase):
         app = main({})
         self.testapp_app = TestApp(app)
         self.testapp_authority = TestApp(app)
+
+    def _debug_callback(self, test_name, callback_name):
+        if DEBUG_LOGIC:
+            print("=" * 40)
+            print(
+                "PyramidTestApp[unittest.TestCase].%s.%s" % (test_name, callback_name)
+            )
 
     def test_valid_flow__registration(self):
         """
@@ -90,6 +100,9 @@ class PyramidTestApp(unittest.TestCase):
 
         def callback__authorization_base_url(req):
             """/authority/oauth2/flow-a/authorization is visited by the USER_BROWSER"""
+            self._debug_callback(
+                "test_valid_flow__registration", "callback__authorization_base_url"
+            )
             assert req.url.startswith(
                 oauth2_utils.OAUTH2__URL_AUTHORITY_FLOWA_AUTHORIZATION
             )
@@ -112,6 +125,9 @@ class PyramidTestApp(unittest.TestCase):
 
         def callback__authorization_base_url_post(req):
             """POST /authority/oauth2/flow-a/authorization is visited by the USER_BROWSER after doing the GET"""
+            self._debug_callback(
+                "test_valid_flow__registration", "callback__authorization_base_url_post"
+            )
             assert req.url.startswith(
                 oauth2_utils.OAUTH2__URL_AUTHORITY_FLOWA_AUTHORIZATION
             )
@@ -149,6 +165,7 @@ class PyramidTestApp(unittest.TestCase):
 
         # def callback__token_url(req):
         #    """/authority/oauth2/flow-a/token is visited by a CLIENT ; is this GET or POST?"""
+        #    self._debug_callback("test_valid_flow__registration", "callback__token_url")
         #    # request as CLIENT, no cookies
         #    with IsolatedTestapp(test_env['testapp_authority']) as testapp_authority:
         #        res = testapp_authority.get('/authority/oauth2/flow-a/token', headers=req.headers, extra_environ=test_env['extra_environ_authority'], status=200)
@@ -158,6 +175,9 @@ class PyramidTestApp(unittest.TestCase):
 
         def callback__token_url_post(req):
             """POST /authority/oauth2/flow-a/token is made by the client (IN THE SERVER) to get a token for the code"""
+            self._debug_callback(
+                "test_valid_flow__registration", "callback__token_url_post"
+            )
             assert req.url.startswith(oauth2_utils.OAUTH2__URL_AUTHORITY_FLOWA_TOKEN)
             payload = dict(parse_qsl(req.body))
 
@@ -180,6 +200,9 @@ class PyramidTestApp(unittest.TestCase):
 
         def callback__app_callback(req):
             """/application/flow-register/authorized-callback is visited by the USER_BROWSER"""
+            self._debug_callback(
+                "test_valid_flow__registration", "callback__app_callback"
+            )
             (_path, _qs) = parse_request_simple(req)
 
             # ConnectionError: Connection refused: GET https://app.example.com/application/flow-register/authorized-callback?state=ZNZvad0w74CbyJFq0HJO8zDm26bJme&code=5wU5CPjP5W6KzwSKCiRemeXnW7B5kb
@@ -203,6 +226,9 @@ class PyramidTestApp(unittest.TestCase):
 
         def callback__app_callback_success(req, test_env=test_env):
             """/application/flow-register/authorized-callback-success is visited by the USER"""
+            self._debug_callback(
+                "test_valid_flow__registration", "callback__app_callback_success"
+            )
             (_path, _qs) = parse_request_simple(req)
 
             testapp_app = test_env["testapp_app"]
@@ -222,6 +248,10 @@ class PyramidTestApp(unittest.TestCase):
 
         def callback__app_fetch_protected_resource(req, test_env=test_env):
             """/application/account/fetch-protected-resource is visited by the USER"""
+            self._debug_callback(
+                "test_valid_flow__registration",
+                "callback__app_fetch_protected_resource",
+            )
             (_path, _qs) = parse_request_simple(req)
 
             testapp_app = test_env["testapp_app"]
@@ -241,6 +271,10 @@ class PyramidTestApp(unittest.TestCase):
 
         def callback__authority_protected_resource(req, test_env=test_env):
             """/authority/oauth2/protected_resource is visited by the USER"""
+            self._debug_callback(
+                "test_valid_flow__registration",
+                "callback__authority_protected_resource",
+            )
             (_path, _qs) = parse_request_simple(req)
 
             testapp_authority = test_env["testapp_authority"]
@@ -260,6 +294,9 @@ class PyramidTestApp(unittest.TestCase):
 
         def callback__app_refresh_token(req, test_env=test_env):
             """/application/account/refresh-token is visited by the USER"""
+            self._debug_callback(
+                "test_valid_flow__registration", "callback__app_refresh_token"
+            )
             (_path, _qs) = parse_request_simple(req)
 
             testapp_app = test_env["testapp_app"]
@@ -279,6 +316,9 @@ class PyramidTestApp(unittest.TestCase):
 
         def callback__app_revoke_token(req, test_env=test_env):
             """/application/account/revoke-token is visited by the USER"""
+            self._debug_callback(
+                "test_valid_flow__registration", "callback__app_revoke_token"
+            )
             (_path, _qs) = parse_request_simple(req)
 
             testapp_app = test_env["testapp_app"]
@@ -297,6 +337,9 @@ class PyramidTestApp(unittest.TestCase):
             return (int(res.status.split(" ")[0]), res.headers, res.body)
 
         def callback__url_revoke_token_post(req):
+            self._debug_callback(
+                "test_valid_flow__registration", "callback__url_revoke_token_post"
+            )
             assert req.url == oauth2_utils.OAUTH2__URL_AUTHORITY_REVOKE_TOKEN
             payload = dict(parse_qsl(req.body))
 
@@ -555,6 +598,10 @@ class PyramidTestApp(unittest.TestCase):
             assert resProtectedAttempt.status_code == 200
             assert resProtectedAttempt.text == "refreshed_token"
 
+            import pdb
+
+            pdb.set_trace()
+
             # okay try a revoke
             # the oauth client is on the server, not our commandline.
             # so we visit this page, where it will revoke the token
@@ -611,6 +658,10 @@ class PyramidTestApp(unittest.TestCase):
         )
 
         def callback__url_obtain_token__post(req):
+            self._debug_callback(
+                "test_valid_flow__client_credentials_grant",
+                "callback__url_obtain_token__post",
+            )
             assert req.url == apiClient._url_obtain_token
             payload = dict(parse_qsl(req.body))
 
@@ -631,6 +682,10 @@ class PyramidTestApp(unittest.TestCase):
             return (int(res.status.split(" ")[0]), res.headers, res.body)
 
         def callback__url_obtain_token_alt__post(req):
+            self._debug_callback(
+                "test_valid_flow__client_credentials_grant",
+                "callback__url_obtain_token_alt__post",
+            )
             assert req.url == apiClient._url_obtain_token_alt
             payload = dict(parse_qsl(req.body))
 
@@ -651,6 +706,10 @@ class PyramidTestApp(unittest.TestCase):
             return (int(res.status.split(" ")[0]), res.headers, res.body)
 
         def callback__url_token_limited__post(req):
+            self._debug_callback(
+                "test_valid_flow__client_credentials_grant",
+                "callback__url_token_limited__post",
+            )
             assert req.url == apiClient._url_token_limited
             payload = dict(parse_qsl(req.body))
 
@@ -671,6 +730,11 @@ class PyramidTestApp(unittest.TestCase):
             return (int(res.status.split(" ")[0]), res.headers, res.body)
 
         def callback__url_revoke_token_post(req):
+            self._debug_callback(
+                "test_valid_flow__client_credentials_grant",
+                "callback__url_revoke_token_post",
+            )
+
             assert req.url == oauth2_utils.OAUTH2__URL_AUTHORITY_REVOKE_TOKEN
             payload = dict(parse_qsl(req.body))
 

@@ -246,6 +246,11 @@ class OAuth2Provider(object):
         self._protected_post_only()
 
         uri, http_method, body, headers = extract_params(self.pyramid_request)
+        print("endpoint__revoke_token")
+        print("> uri ", uri)
+        print("> http_method ", http_method)
+        print("> body ", body)
+        print("> headers ", headers)
         try:
             ret = self.server.create_revocation_response(
                 uri, http_method, body, headers

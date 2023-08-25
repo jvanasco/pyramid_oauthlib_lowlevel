@@ -83,7 +83,7 @@ class CustomValidator_Hooks(OAuth1RequestValidator_Hooks):
             self.pyramid_request.dbSession.query(Developer_oAuth1Server_TokenRequest)
             .filter(
                 Developer_oAuth1Server_TokenRequest.oauth_verifier == verifier,
-                Developer_oAuth1Server_TokenRequest.is_active == True,  # noqa
+                Developer_oAuth1Server_TokenRequest.is_active.is_(True),
             )
             .first()
         )
@@ -99,7 +99,7 @@ class CustomValidator_Hooks(OAuth1RequestValidator_Hooks):
             self.pyramid_request.dbSession.query(Developer_oAuth1Server_TokenRequest)
             .filter(
                 Developer_oAuth1Server_TokenRequest.oauth_token == token,
-                Developer_oAuth1Server_TokenRequest.is_active == True,  # noqa
+                Developer_oAuth1Server_TokenRequest.is_active.is_(True),
             )
             .first()
         )
@@ -142,9 +142,11 @@ class CustomValidator_Hooks(OAuth1RequestValidator_Hooks):
             )
             .filter(
                 DeveloperApplication_Keyset.consumer_key == client_key,
-                DeveloperApplication_Keyset.is_active == True,  # noqa
+                DeveloperApplication_Keyset.is_active.is_(True),
             )
-            .options(sqlalchemy.orm.contains_eager("app_keyset_active"))
+            .options(
+                sqlalchemy.orm.contains_eager(DeveloperApplication.app_keyset_active)
+            )
             .first()
         )
         # if not clientObject:
@@ -168,7 +170,7 @@ class CustomValidator_Hooks(OAuth1RequestValidator_Hooks):
             .filter(
                 Developer_oAuth1Server_TokenAccess.developer_application_id
                 == clientObject.id,
-                Developer_oAuth1Server_TokenAccess.is_active == True,  # noqa
+                Developer_oAuth1Server_TokenAccess.is_active.is_(True),
             )
             .first()
         )
@@ -213,7 +215,7 @@ class CustomValidator_Hooks(OAuth1RequestValidator_Hooks):
                 == verifierObject.developer_application_id,
                 Developer_oAuth1Server_TokenAccess.useraccount_id
                 == verifierObject.useraccount_id,
-                Developer_oAuth1Server_TokenAccess.is_active == True,  # noqa
+                Developer_oAuth1Server_TokenAccess.is_active.is_(True),
             )
             .first()
         )
@@ -462,7 +464,7 @@ class CustomValidator_Hooks(OAuth1RequestValidator_Hooks):
                 == verifierObject.developer_application_id,
                 Developer_oAuth1Server_TokenAccess.useraccount_id
                 == verifierObject.useraccount_id,
-                Developer_oAuth1Server_TokenAccess.is_active == True,  # noqa
+                Developer_oAuth1Server_TokenAccess.is_active.is_(True),
             )
             .first()
         )

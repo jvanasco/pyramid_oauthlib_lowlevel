@@ -61,18 +61,18 @@ class ApiClient(object):
     #
 
     # oAuth1 - URLs
-    OAUTH1_SERVER_AUTHENTICATE: str
-    OAUTH1_SERVER_ACCESS_TOKEN: str
-    OAUTH1_SERVER_REQUEST_TOKEN: str
+    OAUTH1_SERVER_AUTHENTICATE: str = ""
+    OAUTH1_SERVER_ACCESS_TOKEN: str = ""
+    OAUTH1_SERVER_REQUEST_TOKEN: str = ""
 
     # oAuth2 - URLs
-    _url_obtain_token: str
-    _url_revoke_token: str
+    _url_obtain_token: str = ""
+    _url_revoke_token: str = ""
     #
     OAUTH2_SERVER_AUTH = "NotImplementedYet"
     OAUTH2_SERVER_TOKEN = "NotImplementedYet"
     #
-    oauth_version: int
+    oauth_version: int = 0
 
     def __init__(
         self,

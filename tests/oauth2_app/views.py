@@ -46,9 +46,11 @@ log = logging.getLogger(__name__)
 # printing is easier than logging for debugging
 # `export PYRAMID_OAUTHLIB_LOWLEVEL__DEBUG_ROUTE=1`
 # `export PYRAMID_OAUTHLIB_LOWLEVEL__DEBUG_USERID=1`
+# `export PYRAMID_OAUTHLIB_LOWLEVEL__DEBUG_LOGIC=1`
 # `export PYRAMID_OAUTHLIB_LOWLEVEL__LOG_ROUTE=1`
 DEBUG_ROUTE = bool(int(os.getenv("PYRAMID_OAUTHLIB_LOWLEVEL__DEBUG_ROUTE", 0)))
 DEBUG_USERID = bool(int(os.getenv("PYRAMID_OAUTHLIB_LOWLEVEL__DEBUG_USERID", 0)))
+DEBUG_LOGIC = bool(int(os.getenv("PYRAMID_OAUTHLIB_LOWLEVEL__DEBUG_LOGIC", 0)))
 LOG_ROUTE = bool(int(os.getenv("PYRAMID_OAUTHLIB_LOWLEVEL__LOG_ROUTE", 0)))
 
 
@@ -68,58 +70,53 @@ class Form_Oauth2Authorize(form_Schema):
 
 class Handler(object):
     def __init__(self, request):
+        """pylons style request handling"""
+        # set the request attribute
         self.request = request
+        # log debug information if needed
+        if DEBUG_ROUTE or LOG_ROUTE or DEBUG_USERID:
+            print("=== Pyramid Request ===")
+            _route = request.matched_route.name
+            if DEBUG_ROUTE or LOG_ROUTE:
+                _msg = "Pyramid: %s CSRF[%s]" % (_route, get_csrf_token(request))
+                if DEBUG_ROUTE:
+                    print(_msg)
+                if LOG_ROUTE:
+                    log.debug(_msg)
+            if DEBUG_USERID:
+                _msg = "Pyramid: %s active_useraccount_id[%s]" % (
+                    _route,
+                    request.active_useraccount_id,
+                )
 
 
 class Shared(Handler):
     @view_config(route_name="whoami", renderer="string")
     def whoami(self):
         "This is used for writing tests"
-        if DEBUG_ROUTE:
-            print("whoami", get_csrf_token(self.request))
-        if LOG_ROUTE:
-            log.debug("whoami %s", get_csrf_token(self.request))
-        if DEBUG_USERID:
-            print("whoami", self.request.active_useraccount_id)
         return "%s" % (self.request.active_useraccount_id or "")
 
 
 class Authority_User_AcccountViews(Handler):
     @view_config(route_name="authority:account:login-form", renderer="string")
     def account_login_form(self):
-        if DEBUG_ROUTE:
-            print("authority:account:login-form", get_csrf_token(self.request))
-        if LOG_ROUTE:
-            log.debug("authority:account:login-form %s", get_csrf_token(self.request))
         if self.request.active_useraccount_id:
             return HTTPSeeOther("/authority/account/home")
         return "authority|login-form"
 
     @view_config(route_name="authority:account:login-submit", renderer="string")
     def account_login_submit(self):
-        if DEBUG_ROUTE:
-            print("authority:account:login-submit", get_csrf_token(self.request))
-        if LOG_ROUTE:
-            log.debug("authority:account:login-submit %s", get_csrf_token(self.request))
         self.request.session["active_useraccount_id"] = USERID_ACTIVE__AUTHORITY
         return HTTPSeeOther("/authority/account/home")
 
     @view_config(route_name="authority:account:home", renderer="string")
     def account_home(self):
-        if DEBUG_ROUTE:
-            print("authority:account:home", get_csrf_token(self.request))
-        if LOG_ROUTE:
-            log.debug("authority:account:home %s", get_csrf_token(self.request))
         if not self.request.active_useraccount_id:
             return HTTPSeeOther("/authority/account/login-form")
         return "authority|home|user=%s" % self.request.active_useraccount_id
 
     @view_config(route_name="authority:account:logout", renderer="string")
     def account_logout(self):
-        if DEBUG_ROUTE:
-            print("authority:account:logout", get_csrf_token(self.request))
-        if LOG_ROUTE:
-            log.debug("authority:account:logout %s", get_csrf_token(self.request))
         if self.request.active_useraccount_id:
             self.request.session.invalidate()
         return HTTPSeeOther("/authority/account/login-form")
@@ -129,13 +126,6 @@ class Authority_Oauth2_FlowShared_API_Public(Handler):
     @view_config(route_name="authority:oauth2:protected_resource", renderer="string")
     def protected_resource(self):
         """the resource is protected behind an oauth2 token validation."""
-        if DEBUG_ROUTE:
-            print("authority:oauth2:protected_resource", get_csrf_token(self.request))
-        if LOG_ROUTE:
-            log.debug(
-                "authority:oauth2:protected_resource %s", get_csrf_token(self.request)
-            )
-
         oauth2Provider = new_oauth2Provider(self.request)
         scopes = ["platform.actor"]
         valid, req = oauth2Provider.verify_request(scopes)
@@ -150,10 +140,9 @@ class Authority_Oauth2_FlowShared_API_Public(Handler):
 
     @view_config(route_name="authority:oauth2:revoke_token", renderer="string")
     def oauth2_revoke_token(self):
-        if DEBUG_ROUTE:
-            print("authority:oauth2:revoke_token", get_csrf_token(self.request))
-        if LOG_ROUTE:
-            log.debug("authority:oauth2:revoke_token %s", get_csrf_token(self.request))
+        if DEBUG_LOGIC:
+            print("authority:oauth2:revoke_token: CSRF", get_csrf_token(self.request))
+            print("> request.params:", self.request.params)
         try:
             oauth2Provider = new_oauth2Provider(self.request)
             rval = oauth2Provider.endpoint__revoke_token()
@@ -170,13 +159,6 @@ class Authority_Oauth2_FlowA_API_Public(Handler):
 
     @view_config(route_name="authority:oauth2:flow_a:authorization", renderer="string")
     def authorization(self):
-        if DEBUG_ROUTE:
-            print("authority:oauth2:flow_a:authorization", get_csrf_token(self.request))
-        if LOG_ROUTE:
-            log.debug(
-                "authority:oauth2:flow_a:authorization %s", get_csrf_token(self.request)
-            )
-
         # the authorization MUST require a loggedin user
         if not self.request.active_useraccount_id:
             return HTTPSeeOther("/authority/account/login-form")
@@ -248,10 +230,6 @@ class Authority_Oauth2_FlowA_API_Public(Handler):
         1- a loggedin user is getting an access token for their client key/secret combo
         2- a client app is exchanging an authorization code for an access token
         """
-        if DEBUG_ROUTE:
-            print("authority:oauth2:token", get_csrf_token(self.request))
-        if LOG_ROUTE:
-            log.debug("authority:oauth2:token %s", get_csrf_token(self.request))
         try:
             user_id = self.request.active_useraccount_id
             if user_id is not None:
@@ -276,12 +254,6 @@ class Authority_Oauth2_FlowB_API_Public(Handler):
     @view_config(route_name="authority:oauth2:flow_b:obtain_token", renderer="string")
     def obtain_token(self):
         """this default version calculates the client credentials as needed"""
-        if DEBUG_ROUTE:
-            print("authority:oauth2:flow_b:obtain_token", get_csrf_token(self.request))
-        if LOG_ROUTE:
-            log.debug(
-                "authority:oauth2:flow_b:obtain_token %s", get_csrf_token(self.request)
-            )
         try:
             oauth2Provider = new_oauth2Provider(self.request)
             rval = oauth2Provider.endopoint__token(credentials=None)
@@ -304,15 +276,6 @@ class Authority_Oauth2_FlowB_API_Public(Handler):
             username: client_id
             password: client_secret
         """
-        if DEBUG_ROUTE:
-            print(
-                "authority:oauth2:flow_b:obtain_token_alt", get_csrf_token(self.request)
-            )
-        if LOG_ROUTE:
-            log.debug(
-                "authority:oauth2:flow_b:obtain_token_alt %s",
-                get_csrf_token(self.request),
-            )
         try:
             # turn this into a username/password
             # HTTPBasicCredentials(username=u'OAUTH2APPKEYOAUTH2APPKEYOAUTH2APPKEYOAUTH2APPKEY', password=u'OAUTH2__APP_SECRET')
@@ -345,12 +308,6 @@ class Authority_Oauth2_Flowc_API_Public(Handler):
     @view_config(route_name="authority:oauth2:flow_c:token_limited", renderer="string")
     def obtain_token(self):
         """this endpoint does not accept client_credentials"""
-        if DEBUG_ROUTE:
-            print("authority:oauth2:flow_c:token_limited", get_csrf_token(self.request))
-        if LOG_ROUTE:
-            log.debug(
-                "authority:oauth2:flow_c:token_limited %s", get_csrf_token(self.request)
-            )
         try:
             oauth2Provider = new_oauth2ProviderLimited(self.request)
             rval = oauth2Provider.endopoint__token()
@@ -369,51 +326,23 @@ class ExampleApp_User_AccountViews(Handler):
 
     @view_config(route_name="application:account:home", renderer="string")
     def account_home(self):
-        if DEBUG_ROUTE:
-            print("application:account:home", get_csrf_token(self.request))
-        if LOG_ROUTE:
-            log.debug("application:account:home %s", get_csrf_token(self.request))
-        if DEBUG_USERID:
-            print("application:account:home", self.request.active_useraccount_id)
         if not self.request.active_useraccount_id:
             return HTTPSeeOther("/application/account/login-form")
         return "application|home|user=%s" % self.request.active_useraccount_id
 
     @view_config(route_name="application:account:login-form", renderer="string")
     def account_login_form(self):
-        if DEBUG_ROUTE:
-            print("application:account:login-form", get_csrf_token(self.request))
-        if LOG_ROUTE:
-            log.debug("application:account:login-form %s", get_csrf_token(self.request))
-        if DEBUG_USERID:
-            print("application:account:login-form", self.request.active_useraccount_id)
         if self.request.active_useraccount_id:
             return HTTPSeeOther("/application/account/home")
         return "application|login-form"
 
     @view_config(route_name="application:account:login-submit", renderer="string")
     def account_login_submit(self):
-        if DEBUG_ROUTE:
-            print("application:account:login-submit", get_csrf_token(self.request))
-        if LOG_ROUTE:
-            log.debug(
-                "application:account:login-submit %s", get_csrf_token(self.request)
-            )
-        if DEBUG_USERID:
-            print(
-                "application:account:login-submit", self.request.active_useraccount_id
-            )
         self.request.session["active_useraccount_id"] = USERID_ACTIVE__APPLICATION
         return HTTPSeeOther("/application/account/home")
 
     @view_config(route_name="application:account:logout", renderer="string")
     def account_logout(self):
-        if DEBUG_ROUTE:
-            print("application:account:logout", get_csrf_token(self.request))
-        if LOG_ROUTE:
-            log.debug("application:account:logout %s", get_csrf_token(self.request))
-        if DEBUG_USERID:
-            print("application:account:logout", self.request.active_useraccount_id)
         if self.request.active_useraccount_id:
             self.request.session.invalidate()
         return HTTPSeeOther("/application/account/login-form")
@@ -427,16 +356,6 @@ class ExampleApp_User_AccountViews(Handler):
 
         This route will load the token and use it to make an oAuth2 request against the Authority system.
         """
-        if DEBUG_ROUTE:
-            print(
-                "application:account:fetch-protected-resource",
-                get_csrf_token(self.request),
-            )
-        if LOG_ROUTE:
-            log.debug(
-                "application:account:fetch-protected-resource %s",
-                get_csrf_token(self.request),
-            )
         if not self.request.active_useraccount_id:
             return HTTPSeeOther("/application/account/login-form")
 
@@ -448,7 +367,7 @@ class ExampleApp_User_AccountViews(Handler):
                 == self.request.active_useraccount_id,
                 Developer_OAuth2Client_BearerToken.original_grant_type
                 == "authorization_code",
-                Developer_OAuth2Client_BearerToken.is_active == True,  # noqa
+                Developer_OAuth2Client_BearerToken.is_active.is_(True),
             )
             .first()
         )
@@ -458,7 +377,7 @@ class ExampleApp_User_AccountViews(Handler):
         token_dict = {"access_token": clientToken.access_token, "token_type": "Bearer"}
         sess = OAuth2Session(client_id=OAUTH2__APP_KEY, token=token_dict)
         resp = sess.request(
-            "GET", oauth2_utils.OAUTH2__URL_AUTHORITY_PROTECTED_RESOURCE
+            "GET", oauth2_model.OAUTH2__URL_AUTHORITY_PROTECTED_RESOURCE
         )
         if resp.status_code != 200:
             raise ValueError("invalid")
@@ -469,16 +388,16 @@ class ExampleApp_User_AccountViews(Handler):
         """
         refresh the User's token from the server
         """
-        if DEBUG_ROUTE:
-            print("application:account:refresh-token", get_csrf_token(self.request))
-        if LOG_ROUTE:
-            log.debug(
-                "application:account:refresh-token %s", get_csrf_token(self.request)
-            )
         if not self.request.active_useraccount_id:
             return HTTPSeeOther("/application/account/login-form")
         if self.request.active_useraccount_id != USERID_ACTIVE__APPLICATION:
             raise ValueError("not the expected user!")
+
+        # ensure we start this test with the right expectations
+        assert (
+            oauth2_utils.CustomValidator.rotate_refresh_token
+            == oauth2_utils.CustomValidator._rotate_refresh_token__True
+        )
 
         # logging.basicConfig()
         # logging.getLogger().setLevel(logging.DEBUG)
@@ -491,7 +410,7 @@ class ExampleApp_User_AccountViews(Handler):
                 == USERID_ACTIVE__APPLICATION,
                 Developer_OAuth2Client_BearerToken.original_grant_type
                 == "authorization_code",
-                Developer_OAuth2Client_BearerToken.is_active == True,  # noqa
+                Developer_OAuth2Client_BearerToken.is_active.is_(True),
             )
             .first()
         )
@@ -545,7 +464,7 @@ class ExampleApp_User_AccountViews(Handler):
                 == USERID_ACTIVE__APPLICATION,
                 Developer_OAuth2Client_BearerToken.original_grant_type
                 == "authorization_code",
-                Developer_OAuth2Client_BearerToken.is_active == True,  # noqa
+                Developer_OAuth2Client_BearerToken.is_active.is_(True),
             )
             .all()
         )
@@ -559,7 +478,7 @@ class ExampleApp_User_AccountViews(Handler):
                 == USERID_ACTIVE__AUTHORITY,
                 Developer_OAuth2Server_BearerToken.original_grant_type
                 == "authorization_code",
-                Developer_OAuth2Server_BearerToken.is_active == True,  # noqa
+                Developer_OAuth2Server_BearerToken.is_active.is_(True),
             )
             .all()
         )
@@ -569,10 +488,15 @@ class ExampleApp_User_AccountViews(Handler):
         # work correctly on the other method of token rotation...
         # return 'refreshed_token'
 
+        import pdb
+
+        pdb.set_trace()
+
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-        # monkeypatch this to try an alternate method
+        # monkeypatch this to ensure we do not ROTATE the token
+        # and instead issue a new token
         oauth2_utils.CustomValidator.rotate_refresh_token = (
             oauth2_utils.CustomValidator._rotate_refresh_token__False
         )
@@ -624,7 +548,7 @@ class ExampleApp_User_AccountViews(Handler):
                 == self.request.active_useraccount_id,
                 Developer_OAuth2Client_BearerToken.original_grant_type
                 == "authorization_code",
-                Developer_OAuth2Client_BearerToken.is_active == True,  # noqa
+                Developer_OAuth2Client_BearerToken.is_active.is_(True),
             )
             .all()
         )
@@ -638,7 +562,7 @@ class ExampleApp_User_AccountViews(Handler):
                 == USERID_ACTIVE__AUTHORITY,
                 Developer_OAuth2Server_BearerToken.original_grant_type
                 == "authorization_code",
-                Developer_OAuth2Server_BearerToken.is_active == True,  # noqa
+                Developer_OAuth2Server_BearerToken.is_active.is_(True),
             )
             .all()
         )
@@ -656,12 +580,6 @@ class ExampleApp_User_AccountViews(Handler):
         """
         revoke the User's token on the server
         """
-        if DEBUG_ROUTE:
-            print("application:account:revoke-token", get_csrf_token(self.request))
-        if LOG_ROUTE:
-            log.debug(
-                "application:account:revoke-token %s", get_csrf_token(self.request)
-            )
         if not self.request.active_useraccount_id:
             return HTTPSeeOther("/application/account/login-form")
         if self.request.active_useraccount_id != USERID_ACTIVE__APPLICATION:
@@ -675,13 +593,19 @@ class ExampleApp_User_AccountViews(Handler):
                 == USERID_ACTIVE__APPLICATION,
                 Developer_OAuth2Client_BearerToken.original_grant_type
                 == "authorization_code",
-                Developer_OAuth2Client_BearerToken.is_active == True,  # noqa
+                Developer_OAuth2Client_BearerToken.is_active.is_(True),
             )
             .first()
         )
+
         if not clientToken:
             raise ValueError("no token for this user!")
 
+        if DEBUG_LOGIC:
+            print("> Developer_OAuth2Client_BearerToken")
+            print(">     .grant_type", clientToken.grant_type)
+            print(">     .access_token", clientToken.access_token)
+            print(">     .refresh_token", clientToken.refresh_token)
         apiClient = oauth2_utils.CustomApiClientB(
             app_key=oauth2_model.OAUTH2__APP_KEY,
             app_secret=oauth2_model.OAUTH2__APP_SECRET,
@@ -702,7 +626,7 @@ class ExampleApp_User_AccountViews(Handler):
                 == USERID_ACTIVE__AUTHORITY,
                 Developer_OAuth2Server_BearerToken.original_grant_type
                 == "authorization_code",
-                Developer_OAuth2Server_BearerToken.is_active == False,  # noqa
+                Developer_OAuth2Server_BearerToken.is_(False),
                 Developer_OAuth2Server_BearerToken.access_token
                 == clientToken.access_token,
             )
@@ -716,32 +640,12 @@ class ExampleApp_User_AccountViews(Handler):
 class ExampleApp_FlowRegister(Handler):
     @view_config(route_name="application:flow-register", renderer="string")
     def register(self):
-        if DEBUG_ROUTE:
-            print("application:flow-register", get_csrf_token(self.request))
-        if LOG_ROUTE:
-            log.debug("application:flow-register %s", get_csrf_token(self.request))
-        if DEBUG_USERID:
-            print("application:flow-register", self.request.active_useraccount_id)
         if self.request.active_useraccount_id:
             return HTTPSeeOther("/application/account/home")
         return HTTPSeeOther("/application/flow-register/oauth2/start")
 
     @view_config(route_name="application:flow-register:oauth2:start", renderer="string")
     def oauth2_start(self):
-        if DEBUG_ROUTE:
-            print(
-                "application:flow-register:oauth2:start", get_csrf_token(self.request)
-            )
-        if LOG_ROUTE:
-            log.debug(
-                "application:flow-register:oauth2:start %s",
-                get_csrf_token(self.request),
-            )
-        if DEBUG_USERID:
-            print(
-                "application:account:oauth2:start", self.request.active_useraccount_id
-            )
-
         if self.request.active_useraccount_id:
             return HTTPSeeOther("/application/account/home")
 
@@ -762,17 +666,6 @@ class ExampleApp_FlowRegister(Handler):
         renderer="string",
     )
     def authorized_callback(self):
-        if DEBUG_ROUTE:
-            print(
-                "application:flow-register:oauth2:authorized-callback",
-                get_csrf_token(self.request),
-            )
-        if LOG_ROUTE:
-            log.debug(
-                "application:flow-register:oauth2:authorized-callback %s",
-                get_csrf_token(self.request),
-            )
-
         # we don't have a UID here because we haven't had an account created yet!
         if self.request.active_useraccount_id:
             return HTTPSeeOther("/application/account/home")
@@ -831,16 +724,6 @@ class ExampleApp_FlowRegister(Handler):
         renderer="string",
     )
     def authorized_callback_success(self):
-        if DEBUG_ROUTE:
-            print(
-                "application:flow-register:oauth2:authorized-callback-success",
-                get_csrf_token(self.request),
-            )
-        if LOG_ROUTE:
-            log.debug(
-                "application:flow-register:oauth2:authorized-callback-success %s",
-                get_csrf_token(self.request),
-            )
         if not self.request.active_useraccount_id:
             return HTTPSeeOther("/application/account/login-form")
         return (
