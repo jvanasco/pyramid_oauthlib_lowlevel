@@ -1,5 +1,6 @@
 # stdlib
 import logging
+import os
 from typing import Any
 from typing import Dict
 from typing import List
@@ -29,6 +30,7 @@ from ..utils import TYPES_RESPONSE
 if TYPE_CHECKING:
     from pyramid.request import Request as Pyramid_Request
 
+DEBUG_LOGIC = bool(int(os.getenv("PYRAMID_OAUTHLIB_LOWLEVEL__DEBUG_LOGIC", 0)))
 log = logging.getLogger(__name__)
 
 
@@ -234,7 +236,8 @@ class OAuth2Provider(object):
             log.debug("Authorization successful.")
             return create_response(*ret)
         except Exception as exc:
-            print("Exception", exc)
+            if DEBUG_LOGIC:
+                print("> Exception", exc)
             log.critical(exc)
             return HTTPSeeOther(add_params_to_uri(self.error_uri, {"error": str(exc)}))
 
@@ -246,11 +249,12 @@ class OAuth2Provider(object):
         self._protected_post_only()
 
         uri, http_method, body, headers = extract_params(self.pyramid_request)
-        print("endpoint__revoke_token")
-        print("> uri ", uri)
-        print("> http_method ", http_method)
-        print("> body ", body)
-        print("> headers ", headers)
+        if DEBUG_LOGIC:
+            print("> endpoint__revoke_token >")
+            print("  >  uri ", uri)
+            print("  >  http_method ", http_method)
+            print("  >  body ", body)
+            print("  >  headers ", headers)
         try:
             ret = self.server.create_revocation_response(
                 uri, http_method, body, headers
@@ -258,7 +262,8 @@ class OAuth2Provider(object):
             log.debug("Revocation successful.")
             return create_response(*ret)
         except Exception as exc:
-            print("Exception", exc)
+            if DEBUG_LOGIC:
+                print("> Exception", exc)
             log.critical(exc)
             return HTTPSeeOther(add_params_to_uri(self.error_uri, {"error": str(exc)}))
 

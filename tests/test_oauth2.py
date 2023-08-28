@@ -49,9 +49,9 @@ class PyramidTestApp(unittest.TestCase):
 
     def _debug_callback(self, test_name, callback_name):
         if DEBUG_LOGIC:
-            print("=" * 40)
+            print("# ", "=" * 40)
             print(
-                "PyramidTestApp[unittest.TestCase].%s.%s" % (test_name, callback_name)
+                "# PyramidTestApp[unittest.TestCase].%s.%s" % (test_name, callback_name)
             )
 
     def test_valid_flow__registration(self):
@@ -597,10 +597,6 @@ class PyramidTestApp(unittest.TestCase):
             )
             assert resProtectedAttempt.status_code == 200
             assert resProtectedAttempt.text == "refreshed_token"
-
-            import pdb
-
-            pdb.set_trace()
 
             # okay try a revoke
             # the oauth client is on the server, not our commandline.

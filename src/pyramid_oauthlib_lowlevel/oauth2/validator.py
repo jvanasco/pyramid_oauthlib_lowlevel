@@ -20,6 +20,7 @@ from pyramid.authentication import HTTPBasicCredentials
 if TYPE_CHECKING:
     from pyramid.request import Request as Pyramid_Request
 
+DEBUG_LOGIC = bool(int(os.getenv("PYRAMID_OAUTHLIB_LOWLEVEL__DEBUG_LOGIC", 0)))
 log = logging.getLogger(__name__)
 
 # ==============================================================================
@@ -605,29 +606,25 @@ class OAuth2RequestValidator(RequestValidator):
         Method is used by:
             - Revocation Endpoint
         """
-        print("OAuth2RequestValidator.revoke_token")
-        print("> .token", token)
-        print("> .token_type_hint", token_type_hint)
+        if DEBUG_LOGIC:
+            print(">> OAuth2RequestValidator.revoke_token")
+            print("  >>  .token", token)
+            print("  >>  .token_type_hint", token_type_hint)
+            print("  >>  .request", request, request.__dict__)
         if token_type_hint:
-            print("A")
             tokenObject = self._api_hooks.token_getter(
                 **{token_type_hint: token}, debug="revoke_token"
             )
-            print("  > A", tokenObject)
         else:
-            print("B")
+            # let's only do access here
             tokenObject = self._api_hooks.token_getter(
                 access_token=token, debug="revoke_token"
             )
-            print("  > B", tokenObject)
-            if not tokenObject:
-                print("C")
-                tokenObject = self._api_hooks.token_getter(
-                    refresh_token=token, debug="revoke_token"
-                )
-                print("  > C", tokenObject)
+            # if not tokenObject:
+            #    tokenObject = self._api_hooks.token_getter(
+            #        refresh_token=token, debug="revoke_token"
+            #    )
 
-        print("D")
         if tokenObject:
             request.client_id = tokenObject.client_id
             request.user = tokenObject.user

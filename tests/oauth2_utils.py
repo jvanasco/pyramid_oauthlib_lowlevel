@@ -208,8 +208,8 @@ class CustomValidator_Hooks(OAuth2RequestValidator_Hooks):
         :param grantObject: The grant object loaded by ``grant_getter```
         """
         if DEBUG_LOGIC:
-            print("> CustomValidator_Hooks.grant_invalidate")
-            print("  >  grantObject.is_active", grantObject.is_active)
+            print("} CustomValidator_Hooks.grant_invalidate")
+            print("  }  grantObject.is_active", grantObject.is_active)
         grantObject.is_active = False
         self.pyramid_request.dbSession.flush()
 
@@ -236,7 +236,7 @@ class CustomValidator_Hooks(OAuth2RequestValidator_Hooks):
             }
         """
         if DEBUG_LOGIC:
-            print("> CustomValidator_Hooks.bearer_token_setter")
+            print("} CustomValidator_Hooks.bearer_token_setter")
         # what is the context of the token?
         user_id = None
         original_grant_type = None
@@ -273,15 +273,15 @@ class CustomValidator_Hooks(OAuth2RequestValidator_Hooks):
         if liveTokens:
             # note that _token, this way we don't overwrite the `token` dict
             if DEBUG_LOGIC:
-                print("  >  TRYING TO CREATE:")
-                print("  >    .original_grant_type", original_grant_type)
-                print("  >    .access_token", token["access_token"])
-                print("  >    .refresh_token", token.get("refresh_token"))
-                print("  >    FOUND other tokes for this user:")
+                print("  }  TRYING TO CREATE:")
+                print("  }    .original_grant_type", original_grant_type)
+                print("  }    .access_token", token["access_token"])
+                print("  }    .refresh_token", token.get("refresh_token"))
+                print("  }    FOUND other tokes for this user:")
             for _token in liveTokens:
                 if DEBUG_LOGIC:
                     print(
-                        "  >      * LIVE TOKEN WE MUST DROP:",
+                        "  }      * LIVE TOKEN WE MUST DROP:",
                         _token.access_token,
                         _token.refresh_token,
                     )
@@ -331,7 +331,10 @@ class CustomValidator_Hooks(OAuth2RequestValidator_Hooks):
         :param refresh_token: Unicode refresh token
         """
         if DEBUG_LOGIC:
-            print("> CustomValidator_Hooks.token_getter")
+            print("} CustomValidator_Hooks.token_getter")
+            print("  }  access_token :", access_token)
+            print("  }  refresh_token:", refresh_token)
+            print("  }  debug        :", debug)
         if all((access_token, refresh_token)) or not any((access_token, refresh_token)):
             raise ValueError("Submit `access_token` or `refresh_token`, not both.")
 
@@ -383,11 +386,11 @@ class CustomValidator_Hooks(OAuth2RequestValidator_Hooks):
         :param tokenObject: The grant object loaded by ``token_getter```
         """
         if DEBUG_LOGIC:
-            print("> CustomValidator_Hooks.token_revoke")
-            print("  >  tokenObject.is_active", tokenObject.is_active)
-            print("  >  tokenObject.token_type", tokenObject.token_type)
-            print("  >  tokenObject.access_token", tokenObject.access_token)
-            print("  >  tokenObject.refresh_token", tokenObject.refresh_token)
+            print("} CustomValidator_Hooks.token_revoke")
+            print("  }  tokenObject.is_active", tokenObject.is_active)
+            print("  }  tokenObject.token_type", tokenObject.token_type)
+            print("  }  tokenObject.access_token", tokenObject.access_token)
+            print("  }  tokenObject.refresh_token", tokenObject.refresh_token)
         tokenObject.is_active = False
         tokenObject.timestamp_revoked = self.pyramid_request.datetime
         self.pyramid_request.dbSession.flush()

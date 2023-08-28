@@ -75,16 +75,16 @@ class Handler(object):
         self.request = request
         # log debug information if needed
         if DEBUG_ROUTE or LOG_ROUTE or DEBUG_USERID:
-            print("=== Pyramid Request ===")
+            print(") === Pyramid Request ===")
             _route = request.matched_route.name
             if DEBUG_ROUTE or LOG_ROUTE:
-                _msg = "Pyramid: %s CSRF[%s]" % (_route, get_csrf_token(request))
+                _msg = "  )  Pyramid: %s CSRF[%s]" % (_route, get_csrf_token(request))
                 if DEBUG_ROUTE:
                     print(_msg)
                 if LOG_ROUTE:
                     log.debug(_msg)
             if DEBUG_USERID:
-                _msg = "Pyramid: %s active_useraccount_id[%s]" % (
+                _msg = "  )  Pyramid: %s active_useraccount_id[%s]" % (
                     _route,
                     request.active_useraccount_id,
                 )
@@ -141,8 +141,7 @@ class Authority_Oauth2_FlowShared_API_Public(Handler):
     @view_config(route_name="authority:oauth2:revoke_token", renderer="string")
     def oauth2_revoke_token(self):
         if DEBUG_LOGIC:
-            print("authority:oauth2:revoke_token: CSRF", get_csrf_token(self.request))
-            print("> request.params:", self.request.params)
+            print(")  request.params:", self.request.params)
         try:
             oauth2Provider = new_oauth2Provider(self.request)
             rval = oauth2Provider.endpoint__revoke_token()
@@ -394,15 +393,15 @@ class ExampleApp_User_AccountViews(Handler):
             raise ValueError("not the expected user!")
 
         # ensure we start this test with the right expectations
+        # we want to ensure we start this with a ROTATION
+        # which will issue a new token
         assert (
             oauth2_utils.CustomValidator.rotate_refresh_token
             == oauth2_utils.CustomValidator._rotate_refresh_token__True
         )
 
-        # logging.basicConfig()
-        # logging.getLogger().setLevel(logging.DEBUG)
-
         # what is our token?
+        # load from the `Developer_OAuth2Client_` table
         clientToken = (
             self.request.dbSession.query(Developer_OAuth2Client_BearerToken)
             .filter(
@@ -433,6 +432,13 @@ class ExampleApp_User_AccountViews(Handler):
         if not isinstance(newToken_dict, OAuth2Token):
             raise ValueError("did not load an `OAuth2Token``")
 
+        if DEBUG_LOGIC:
+            print(") ------")
+            print("  )  refresh_token - A")
+            print("  )  token - original:", token_dict)
+            print("  )  token - new     :", newToken_dict)
+
+        # save to the `Developer_OAuth2Client_` table
         newToken_db = Developer_OAuth2Client_BearerToken()
         newToken_db.useraccount_id = self.request.active_useraccount_id
         newToken_db.access_token = newToken_dict["access_token"]
@@ -448,7 +454,7 @@ class ExampleApp_User_AccountViews(Handler):
         self.request.dbSession.add(newToken_db)
         self.request.dbSession.flush()
 
-        # mark this as inactive since we have a new one
+        # mark the original as inactive since we have a new one
         clientToken.is_active = False
         self.request.dbSession.flush()
 
@@ -456,7 +462,7 @@ class ExampleApp_User_AccountViews(Handler):
         assert clientToken.access_token != newToken_db.access_token
         assert clientToken.refresh_token != newToken_db.refresh_token
 
-        # so let's just check to ensure we have the right number of active tokens (Client)
+        # check to ensure we have the right number of active tokens **Client**
         _clientTokens = (
             self.request.dbSession.query(Developer_OAuth2Client_BearerToken)
             .filter(
@@ -470,7 +476,7 @@ class ExampleApp_User_AccountViews(Handler):
         )
         assert len(_clientTokens) == 1
 
-        # so let's just check to ensure we have the right number of active tokens (Server)
+        # check to ensure we have the right number of active tokens **Server**
         _serverTokens = (
             self.request.dbSession.query(Developer_OAuth2Server_BearerToken)
             .filter(
@@ -486,11 +492,7 @@ class ExampleApp_User_AccountViews(Handler):
 
         # we could return here, but let's try another method to ensure our tests
         # work correctly on the other method of token rotation...
-        # return 'refreshed_token'
-
-        import pdb
-
-        pdb.set_trace()
+        ## return 'refreshed_token'
 
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -499,6 +501,10 @@ class ExampleApp_User_AccountViews(Handler):
         # and instead issue a new token
         oauth2_utils.CustomValidator.rotate_refresh_token = (
             oauth2_utils.CustomValidator._rotate_refresh_token__False
+        )
+        assert (
+            oauth2_utils.CustomValidator.rotate_refresh_token
+            == oauth2_utils.CustomValidator._rotate_refresh_token__False
         )
 
         # grab this data to send upstream
@@ -517,6 +523,13 @@ class ExampleApp_User_AccountViews(Handler):
         if not isinstance(newToken_dict, OAuth2Token):
             raise ValueError("did not load an `OAuth2Token``")
 
+        if DEBUG_LOGIC:
+            print(") ------")
+            print("  )  refresh_token - B")
+            print("  )  token - original:", token_dict)
+            print("  )  token - new     :", newToken_dict2)
+
+        # save to the `Developer_OAuth2Client_` table
         newToken_db2 = Developer_OAuth2Client_BearerToken()
         newToken_db2.useraccount_id = self.request.active_useraccount_id
         newToken_db2.access_token = newToken_dict2["access_token"]
@@ -540,7 +553,7 @@ class ExampleApp_User_AccountViews(Handler):
         assert newToken_db.access_token != newToken_db2.access_token
         assert newToken_db.refresh_token == newToken_db2.refresh_token
 
-        # so let's just check to ensure we have the right number of active tokens (Client)
+        # check to ensure we have the right number of active tokens **Client**
         _clientTokens = (
             self.request.dbSession.query(Developer_OAuth2Client_BearerToken)
             .filter(
@@ -554,7 +567,7 @@ class ExampleApp_User_AccountViews(Handler):
         )
         assert len(_clientTokens) == 1
 
-        # so let's just check to ensure we have the right number of active tokens (Server)
+        # check to ensure we have the right number of active tokens **Server**
         _serverTokens = (
             self.request.dbSession.query(Developer_OAuth2Server_BearerToken)
             .filter(
@@ -602,10 +615,10 @@ class ExampleApp_User_AccountViews(Handler):
             raise ValueError("no token for this user!")
 
         if DEBUG_LOGIC:
-            print("> Developer_OAuth2Client_BearerToken")
-            print(">     .grant_type", clientToken.grant_type)
-            print(">     .access_token", clientToken.access_token)
-            print(">     .refresh_token", clientToken.refresh_token)
+            print(")  Developer_OAuth2Client_BearerToken")
+            print("  )  .grant_type", clientToken.grant_type)
+            print("  )  .access_token", clientToken.access_token)
+            print("  )  .refresh_token", clientToken.refresh_token)
         apiClient = oauth2_utils.CustomApiClientB(
             app_key=oauth2_model.OAUTH2__APP_KEY,
             app_secret=oauth2_model.OAUTH2__APP_SECRET,
@@ -633,7 +646,6 @@ class ExampleApp_User_AccountViews(Handler):
             .first()
         )
         assert _serverToken is not None
-
         return "revoked_token"
 
 
