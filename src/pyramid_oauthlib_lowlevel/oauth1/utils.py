@@ -1,17 +1,13 @@
-from __future__ import print_function
-
-import logging
-
-log = logging.getLogger(__name__)
-
 # stdlib
 import functools
 import json
+import logging
 import os
+from typing import Callable
 
-# pypi, upstream
-from oauthlib.oauth1.rfc5849.errors import OAuth1Error
+# pypi
 from oauthlib.common import urlencode
+from oauthlib.oauth1.rfc5849.errors import OAuth1Error
 
 # local
 from .errors import MiscellaneousOAuth1Error
@@ -19,6 +15,8 @@ from .errors import TemporarilyUnavailableError
 from ..errors import BackendError
 from ..utils import create_response
 
+
+log = logging.getLogger(__name__)
 
 # ==============================================================================
 
@@ -31,7 +29,7 @@ PRINT_ERRORS = bool(int(os.getenv("PYRAMID_OAUTHLIB_LOWLEVEL__PRINT_ERRORS", 0))
 # ==============================================================================
 
 
-def oauth_error_json(error):
+def oauth_error_json(error) -> str:
     """
     the upstream oauthlib `OAuth2Error` has a `json` property that encodes the error data
     this is missing on the `OAuth1Error` object
@@ -39,7 +37,7 @@ def oauth_error_json(error):
     return json.dumps(dict(error.twotuples))
 
 
-def oauth_error_uri(error):
+def oauth_error_uri(error) -> str:
     """
     the upstream oauthlib `OAuth2Error` has a `json` property that encodes the error data
     this is missing on the `OAuth1Error` object
@@ -48,7 +46,7 @@ def oauth_error_uri(error):
     return urlencode(error.twotuples)
 
 
-def catch_endpoint_failure(f):
+def catch_endpoint_failure(f: Callable) -> Callable:
     """
     this ports the oauth2 error catching utility `catch_errors_and_unavailability` for oauth1
 

@@ -1,43 +1,37 @@
-from __future__ import print_function
-import logging
-
-log = logging.getLogger(__name__)
-
 """
 fake app for tests
 """
 # stdlib
+import logging
 import os
-import pdb
 
-# pyramid
-from pyramid.renderers import render_to_response
-from pyramid.view import view_config
+# pypi
+from formencode import Schema as form_Schema
+from formencode.validators import OneOf as form_OneOf
+from formencode.validators import UnicodeString as form_UnicodeString
+from oauthlib.oauth1.rfc5849.errors import OAuth1Error
 from pyramid.csrf import get_csrf_token
 from pyramid.httpexceptions import HTTPException
 from pyramid.httpexceptions import HTTPSeeOther
-
-# pypi
+from pyramid.renderers import render_to_response
+from pyramid.view import view_config
 import pyramid_formencode_classic as formhandling
-from formencode import Schema as form_Schema
-from formencode.validators import UnicodeString as form_UnicodeString
-from formencode.validators import OneOf as form_OneOf
 
 # local
-from ..oauth1_utils import new_oauth1Provider
-from ..oauth1_utils import CustomApiClient
-from ..oauth1_utils import get_ApiExampleAppData
-from ..oauth1_model import Developer_oAuth1Server_TokenRequest
-from ..oauth1_model import Developer_oAuth1Server_TokenAccess
+from pyramid_oauthlib_lowlevel.client.api_client import ApiAuthError
+from pyramid_oauthlib_lowlevel.client.api_client import ApiError
 from ..oauth1_model import Developer_oAuth1Client_TokenAccess
+from ..oauth1_model import Developer_oAuth1Server_TokenAccess
+from ..oauth1_model import Developer_oAuth1Server_TokenRequest
 from ..oauth1_model import USERID_ACTIVE__APPLICATION
 from ..oauth1_model import USERID_ACTIVE__AUTHORITY
+from ..oauth1_utils import CustomApiClient
+from ..oauth1_utils import get_ApiExampleAppData
+from ..oauth1_utils import new_oauth1Provider
 
-# local package
-from oauthlib.oauth1.rfc5849.errors import OAuth1Error
-from pyramid_oauthlib_lowlevel.client.api_client import ApiError
-from pyramid_oauthlib_lowlevel.client.api_client import ApiAuthError
+# ==============================================================================
 
+log = logging.getLogger(__name__)
 
 # ==============================================================================
 
@@ -135,7 +129,7 @@ class Authority_Oauth1_FlowShared_API_Public(Handler):
             return provider.endpoint__request_token()
         except HTTPException:
             raise
-        except Exception as exc:
+        except Exception:
             # raise custom errors in production
             raise
 
@@ -148,7 +142,10 @@ class Authority_Oauth1_FlowShared_API_Public(Handler):
         if LOG_ROUTE:
             log.debug("authority:oauth1:access_token %s", get_csrf_token(self.request))
         if DEBUG_USERID:
-            print("authority:oauth1:access_token", self.request.active_useraccount_id)
+            print(
+                "authority:oauth1:access_token: UserID",
+                self.request.active_useraccount_id,
+            )
         try:
             provider = new_oauth1Provider(self.request)
             return provider.endpoint__access_token()
@@ -181,7 +178,7 @@ class Authority_Oauth1_FlowShared_API_Public(Handler):
                 .filter(
                     Developer_oAuth1Server_TokenRequest.oauth_token
                     == oauth1_data["credentials"]["resource_owner_key"],
-                    Developer_oAuth1Server_TokenRequest.is_active == True,  # noqa
+                    Developer_oAuth1Server_TokenRequest.is_active.is_(True),
                 )
                 .first()
             )
@@ -379,11 +376,11 @@ class ExampleApp_FlowRegister(Handler):
             redirect_url = auth_props["auth_url"]
             return HTTPSeeOther(location=redirect_url)
 
-        except ApiAuthError as exc:
+        except ApiAuthError:
             raise ValueError("There are issues connecting with the Example Server API.")
 
         except ApiError as exc:
-            error_dict = {"error": 1, "error_message": exc.msg}
+            # error_dict = {"error": 1, "error_message": exc.msg}
             raise ValueError(exc.msg)
 
     @view_config(
@@ -412,7 +409,7 @@ class ExampleApp_FlowRegister(Handler):
         if self.request.active_useraccount_id:
             return HTTPSeeOther("/application/account/home")
 
-        public_token = self.request.params.get("oauth_token")
+        # public_token = self.request.params.get("oauth_token")
         public_verifier = self.request.params.get("oauth_verifier")
 
         oauth_sessiondata = self.request.session["3rdparty-app_oauth"]
@@ -487,7 +484,7 @@ class ExampleApp_FlowRegister(Handler):
             .filter(
                 Developer_oAuth1Client_TokenAccess.useraccount_id
                 == USERID_ACTIVE__APPLICATION,
-                Developer_oAuth1Client_TokenAccess.is_active == True,  # noqa
+                Developer_oAuth1Client_TokenAccess.is_active.is_(True),
             )
             .all()
         )
@@ -499,7 +496,7 @@ class ExampleApp_FlowRegister(Handler):
             .filter(
                 Developer_oAuth1Server_TokenAccess.useraccount_id
                 == USERID_ACTIVE__AUTHORITY,
-                Developer_oAuth1Server_TokenAccess.is_active == True,  # noqa
+                Developer_oAuth1Server_TokenAccess.is_active.is_(True),
             )
             .all()
         )

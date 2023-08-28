@@ -1,21 +1,32 @@
+# stdlib
 import logging
+from typing import Any
+from typing import Dict
+from typing import Iterable
+from typing import Tuple
+from typing import TYPE_CHECKING
 
-log = logging.getLogger(__name__)
-
-# pypi, upstream
+# pypi
 from oauthlib.oauth1 import WebApplicationServer as Server
 
 # from oauthlib.common import to_unicode, add_params_to_uri, urlencode
 # from oauthlib.oauth1.rfc5849 import errors
-
-# pypi
 # from pyramid.httpexceptions import HTTPUnauthorized
 
 # local
-from .. import utils
-from .utils import catch_endpoint_failure
 from .errors import MiscellaneousOAuth1Error
+from .utils import catch_endpoint_failure
 from .validator import OAuth1RequestValidator
+from .. import utils
+from ..utils import TYPE_EXTRACTED_PARAMS
+from ..utils import TYPES_SESSION_OPTIONAL
+
+if TYPE_CHECKING:
+    from oauthlib.common import Request as oAuth_Request
+    from pyramid.request import Request as Pyramid_Request
+    from pyramid.response import Response
+
+log = logging.getLogger(__name__)
 
 
 # ==============================================================================
@@ -23,18 +34,24 @@ from .validator import OAuth1RequestValidator
 
 class OAuth1Provider(object):
     # these fields modeled after oauthlib.oauth2.rfc6749.endpoints.base.BaseEndpoint
-    _available = True
-    _catch_errors = True
+    _available: bool = True
+    _catch_errors: bool = True
 
     # stash for OAuth1RequestValidator
     _validator_api_hooks = None
     _validator_class = None
     _validator = None
 
-    pyramid_request = None
-    server = None  # Server instance
+    pyramid_request: "Pyramid_Request"
+    server: Any  # Server instance
+    # TODO: better typing for `server`
 
-    def __init__(self, pyramid_request, validator_api_hooks=None, validator_class=None):
+    def __init__(
+        self,
+        pyramid_request: "Pyramid_Request",
+        validator_api_hooks=None,
+        validator_class=None,
+    ):
         """Builds a new Provider
 
         :param pyramid_request: pyramid `request` object.
@@ -52,31 +69,34 @@ class OAuth1Provider(object):
         self.server = Server(self._validator)
 
     @property
-    def available(self):
+    def available(self) -> bool:
         # from: oauthlib.oauth2.rfc6749.endpoints.base.BaseEndpoint
         return self._available
 
     @available.setter
-    def available(self, available):
+    def available(self, available: bool):
         # from: oauthlib.oauth2.rfc6749.endpoints.base.BaseEndpoint
         self._available = available
 
     @property
-    def catch_errors(self):
+    def catch_errors(self) -> bool:
         # from: oauthlib.oauth2.rfc6749.endpoints.base.BaseEndpoint
         return self._catch_errors
 
     @catch_errors.setter
-    def catch_errors(self, catch_errors):
+    def catch_errors(self, catch_errors: bool):
         # from: oauthlib.oauth2.rfc6749.endpoints.base.BaseEndpoint
         self._catch_errors = catch_errors
 
-    def extract_params(self):
+    def extract_params(self) -> TYPE_EXTRACTED_PARAMS:
         """proxy function to utils.extract_params"""
         return utils.extract_params(self.pyramid_request)
 
     @catch_endpoint_failure
-    def endpoint__request_token(self, dbSessionCommit=None):
+    def endpoint__request_token(
+        self,
+        dbSessionCommit: TYPES_SESSION_OPTIONAL = None,
+    ) -> "Response":
         """
         actual endpoint logic
 
@@ -92,7 +112,11 @@ class OAuth1Provider(object):
         return utils.oauth1_to_pyramid_Response(oauth_response)
 
     @catch_endpoint_failure
-    def endpoint__access_token(self, dbSessionCommit=None, update_access_token=None):
+    def endpoint__access_token(
+        self,
+        dbSessionCommit: TYPES_SESSION_OPTIONAL = None,
+        update_access_token=None,
+    ) -> "Response":
         """
         actual endpoint logic
 
@@ -101,6 +125,8 @@ class OAuth1Provider(object):
 
         TODO: update_access_token
         """
+        if update_access_token is not None:
+            raise NotImplementedError("`update_access_token` is not implemented yet")
         uri, http_method, body, headers = utils.extract_params(self.pyramid_request)
         credentials = None
         # resp_headers, token, 200
@@ -112,7 +138,7 @@ class OAuth1Provider(object):
             dbSessionCommit.commit()
         return utils.oauth1_to_pyramid_Response(oauth_response)
 
-    def extract__endpoint_authorize_data(self):
+    def extract__endpoint_authorize_data(self) -> Dict:
         """Returns a dict"""
         try:
             uri, http_method, body, headers = utils.extract_params(self.pyramid_request)
@@ -124,7 +150,7 @@ class OAuth1Provider(object):
                 description="Error extracting oAuth1 params", wrapped_exception=exc
             )
             raise error
-        oauth1_data = {
+        oauth1_data: Dict = {
             "uri": uri,
             "http_method": http_method,
             "body": body,
@@ -135,7 +161,11 @@ class OAuth1Provider(object):
         return oauth1_data
 
     @catch_endpoint_failure
-    def endpoint__authorize__authorize(self, oauth1_data=None, dbSessionCommit=None):
+    def endpoint__authorize__authorize(
+        self,
+        oauth1_data: Dict,
+        dbSessionCommit: TYPES_SESSION_OPTIONAL = None,
+    ) -> "Response":
         """
         authorize the app
 
@@ -157,7 +187,10 @@ class OAuth1Provider(object):
             dbSessionCommit.commit()
         return utils.oauth1_to_pyramid_Response(oauth_response)
 
-    def logic__is_authorized(self, realms):
+    def logic__is_authorized(
+        self,
+        realms: Iterable[str],
+    ) -> Tuple[bool, "oAuth_Request"]:
         """
         This checks for a valid oAuth payload for the given `realms`.
 

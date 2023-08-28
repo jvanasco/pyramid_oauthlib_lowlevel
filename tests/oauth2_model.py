@@ -26,15 +26,15 @@ The following will refer to the model elements as `Object(tablename)`
 
 
 """
+# stdlib
+import datetime
 
 # pypi
 import sqlalchemy as sa
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.schema import MetaData
+from sqlalchemy.ext.declarative import DeclarativeMeta
 
-# stdlib
-import datetime
-
+# ==============================================================================
 
 # we'll use these in a few places...
 OAUTH2__APP_KEY = "OAUTH2APPKEYOAUTH2APPKEYOAUTH2APPKEYOAUTH2APPKEY"
@@ -72,8 +72,11 @@ OAUTH2__URL_APP_FLOW_REGISTER_CALLBACK_SUCCESS = (
 OAUTH2__URL_APP_FETCH_PROTECTED_RESOURCE = (
     "https://app.example.com/application/account/fetch-protected-resource"
 )
-OAUTH2__URL_APP_REFRESH_TOKEN = (
+OAUTH2__URL_APP_REFRESH_TOKEN = (  # refresh by rotation
     "https://app.example.com/application/account/refresh-token"
+)
+OAUTH2__URL_APP_REFRESH_TOKEN_RECYCLE = (  # refresh by recycling
+    "https://app.example.com/application/account/refresh-token-recycle"
 )
 OAUTH2__URL_APP_REVOKE_TOKEN = (
     "https://app.example.com/application/account/revoke-token"
@@ -87,7 +90,7 @@ USERID_ACTIVE__AUTHORITY = 42
 
 # mymetadata = MetaData()
 # Base = declarative_base(metadata=mymetadata)
-Base = declarative_base()
+Base: DeclarativeMeta = declarative_base()
 
 
 # ==============================================================================

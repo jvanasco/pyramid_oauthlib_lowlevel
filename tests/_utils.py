@@ -1,6 +1,8 @@
+# stdlib
 import datetime
-import webtest.app
 
+# pypi
+import webtest.app
 
 # ==============================================================================
 

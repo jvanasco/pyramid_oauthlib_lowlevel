@@ -1,23 +1,20 @@
 """
 fake app for tests
 """
-import logging
-
-log = logging.getLogger(__name__)
 
 # stdlib
 import datetime
+import logging
 
-# pyramid
+# pypi
 from pyramid.config import Configurator
 from pyramid.session import SignedCookieSessionFactory
 
-# pypi
-import sqlalchemy
-
 # local
-from .. import oauth2_model
 
+# ==============================================================================
+
+log = logging.getLogger(__name__)
 
 # ==============================================================================
 
@@ -107,6 +104,14 @@ def main(global_config, **settings):
     )
     config.add_route(
         "application:account:refresh-token", "/application/account/refresh-token"
+    )
+    config.add_route(
+        "application:account:refresh-token-recycle",
+        "/application/account/refresh-token-recycle",
+    )
+    config.add_route(
+        "application:account:refresh-token-rotate",
+        "/application/account/refresh-token-rotate",
     )
     config.add_route(
         "application:account:revoke-token", "/application/account/revoke-token"

@@ -1,21 +1,35 @@
-from __future__ import print_function
-
-import logging
-
-log = logging.getLogger(__name__)
-
 # stdlib
 from functools import wraps
+import logging
 import os
+from typing import Any
+from typing import Callable
+from typing import Dict
+from typing import Tuple
+from typing import Union
+
+# from typing import TYPE_CHECKING
 
 # pypi
+from pyramid.httpexceptions import HTTPSeeOther
+from pyramid.request import Request
 from pyramid.response import Response
-from six import ensure_str
+from sqlalchemy.orm import scoped_session
+from sqlalchemy.orm.session import Session
 
 # local
 from .errors import BackendError
 
 # ==============================================================================
+
+TYPES_RESPONSE = Union[Response, HTTPSeeOther]
+TYPES_SESSION_OPTIONAL = Union[Session, scoped_session, None]
+
+TYPE_EXTRACTED_PARAMS = Tuple[str, str, Dict, Dict]
+
+# ==============================================================================
+
+log = logging.getLogger(__name__)
 
 
 # this is made available for ease of debugging unittests
@@ -27,10 +41,10 @@ PRINT_ERRORS = bool(int(os.getenv("PYRAMID_OAUTHLIB_LOWLEVEL__PRINT_ERRORS", 0))
 
 
 def native_(s, encoding="latin-1", errors="strict"):
-    return ensure_str(s, encoding, errors)
+    return s
 
 
-def oauth1_to_pyramid_Response(ret):
+def oauth1_to_pyramid_Response(ret) -> Response:
     """
     originally this simply did:
 
@@ -44,7 +58,7 @@ def oauth1_to_pyramid_Response(ret):
     safe_headers = []
     content_type = None
     charset = None
-    for (k, v) in ret[0].items():
+    for k, v in ret[0].items():
         k = str(k)
         v = str(v)
         if k.lower() == "content-type":
@@ -61,14 +75,29 @@ def oauth1_to_pyramid_Response(ret):
     return Response(**kwargs)
 
 
-def string_headers(headers):
-    return {
-        native_(name, encoding="latin-1"): native_(value, encoding="latin-1")
-        for name, value in headers.items()
-    }
+def string_headers(headers: Dict) -> Dict:
+    rval: Dict = {}
+    for name, value in headers.items():
+        if isinstance(name, bytes):
+            name = name.decode("latin-1")
+        if isinstance(value, bytes):
+            value = value.decode("latin-1")
+        rval[name] = value
+    return rval
 
 
-def create_response(headers, body, status):
+def bytes_headers(headers: Dict) -> Dict:
+    rval: Dict = {}
+    for name, value in headers.items():
+        if isinstance(name, str):
+            name = name.encode()
+        if isinstance(value, str):
+            value = value.encode()
+        rval[name] = value
+    return rval
+
+
+def create_response(headers: Dict, body: str, status: int) -> Response:
     """
     Originally from flask-oauthlib
     Extract request params.
@@ -104,7 +133,7 @@ def create_response(headers, body, status):
     return response
 
 
-def extract_params(pyramid_request):
+def extract_params(pyramid_request: "Request") -> TYPE_EXTRACTED_PARAMS:
     """
     originally from flask-oauthlib
     Extract pyramid_request params.
@@ -121,7 +150,7 @@ def extract_params(pyramid_request):
     return uri, http_method, body, headers
 
 
-def catch_backend_failure(f):
+def catch_backend_failure(f: Callable) -> Callable:
     """
     this is used to catch generic backend failures and correctly log/handle them
     """

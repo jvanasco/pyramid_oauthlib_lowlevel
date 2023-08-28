@@ -21,6 +21,15 @@ there are some envrionment variables that can help control tests and application
 	extra debugging during tests
 
 
+Debug messages have an initial character indicating what file they are from:
+
+    #  - tests/test_oauth2.py 
+    )  - tests/oauth2_app/views.py 
+    }  - tests/oauth2_utils.py
+    >  - src/pyramid_oauthlib_lowlevel/oauth2/provider.py
+    >> - src/pyramid_oauthlib_lowlevel/oauth2/validator.py
+
+
 FLAKE8
 ======
 

@@ -1,9 +1,12 @@
+# stdlib
 import logging
-
-log = logging.getLogger(__name__)
+from typing import Optional
 
 # pypi
+from oauthlib.common import Request as oAuth_Request
 from oauthlib.oauth1.rfc5849.errors import OAuth1Error
+
+log = logging.getLogger(__name__)
 
 
 # ==============================================================================
@@ -14,16 +17,16 @@ class MiscellaneousOAuth1Error(OAuth1Error):
     this extends the OAuth1Error class with a `wrapped_exception`
     """
 
-    error = "oauth1_error"
-    wrapped_exception = None
+    error: str = "oauth1_error"
+    wrapped_exception: Optional[Exception] = None
 
     def __init__(
         self,
-        description=None,
-        uri=None,
-        status_code=400,
-        request=None,
-        wrapped_exception=None,
+        description: Optional[str] = None,
+        uri: Optional[str] = None,
+        status_code: int = 400,
+        request: Optional[oAuth_Request] = None,
+        wrapped_exception: Optional[Exception] = None,
     ):
         super(MiscellaneousOAuth1Error, self).__init__(
             description=description, uri=uri, status_code=status_code, request=request

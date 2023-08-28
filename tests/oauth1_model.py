@@ -1,13 +1,14 @@
 """This is an alternate implementation.  proxies are used to make interfaces compliant"""
 
-# pypi
-import sqlalchemy as sa
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.schema import MetaData
-
 # stdlib
 import datetime
 
+# pypi
+import sqlalchemy as sa
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.declarative import DeclarativeMeta
+
+# ==============================================================================
 
 # we'll use these in a few places...
 OAUTH1__APP_KEY = "OAUTH1APPKEYOAUTH1APPKEYOAUTH1APPKEYOAUTH1APPKEY"
@@ -44,7 +45,7 @@ USERID_ACTIVE__AUTHORITY = 42
 
 # mymetadata = MetaData()
 # Base = declarative_base(metadata=mymetadata)
-Base = declarative_base()
+Base: DeclarativeMeta = declarative_base()
 
 
 # ==============================================================================
@@ -182,7 +183,7 @@ class Developer_oAuth1Server_TokenRequest(Base):
     oauth_token = sa.Column(sa.Unicode(1000), nullable=False)
     oauth_token_secret = sa.Column(sa.Unicode(1000), nullable=False)
     oauth_verifier = sa.Column(sa.Unicode(1000), nullable=True)
-    oauth_version = sa.Column(sa.Unicode(5), nullable=False, default=u"1")
+    oauth_version = sa.Column(sa.Unicode(5), nullable=False, default="1")
     redirect_uri = sa.Column(sa.Unicode(255), nullable=False)
     oauth_callback_confirmed = sa.Column(sa.Unicode(1000), nullable=False)
     is_rejected = sa.Column(sa.Boolean, nullable=True, default=None)
@@ -291,14 +292,14 @@ class Developer_oAuth1Server_TokenAccess(Base):
     oauth_token_secret = sa.Column(sa.Unicode(1000), nullable=False)
     _realms = sa.Column(sa.Unicode(255), nullable=False)
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    token_type = sa.Column(sa.Unicode(32), nullable=False, default=u"bearer")
+    token_type = sa.Column(sa.Unicode(32), nullable=False, default="bearer")
     developer_application_id = sa.Column(
         sa.Integer, sa.ForeignKey("developer_application.id"), nullable=False
     )
     useraccount_id = sa.Column(
         sa.Integer, sa.ForeignKey("useraccount.id"), nullable=False
     )
-    oauth_version = sa.Column(sa.Unicode(5), nullable=False, default=u"1")
+    oauth_version = sa.Column(sa.Unicode(5), nullable=False, default="1")
     timestamp_expired = sa.Column(sa.Integer, nullable=True)
     is_active = sa.Column(sa.Boolean, nullable=True, default=True)
 
@@ -348,8 +349,8 @@ class Developer_oAuth1Client_TokenAccess(Base):
     oauth_token_secret = sa.Column(sa.Unicode(1000), nullable=False)
     _realms = sa.Column(sa.Unicode(255), nullable=False)
     timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    token_type = sa.Column(sa.Unicode(32), nullable=False, default=u"bearer")
-    oauth_version = sa.Column(sa.Unicode(5), nullable=False, default=u"1")
+    token_type = sa.Column(sa.Unicode(32), nullable=False, default="bearer")
+    oauth_version = sa.Column(sa.Unicode(5), nullable=False, default="1")
     timestamp_expired = sa.Column(sa.Integer, nullable=True)
     is_active = sa.Column(sa.Boolean, nullable=True, default=True)
 

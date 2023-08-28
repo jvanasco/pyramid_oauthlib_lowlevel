@@ -1,3 +1,7 @@
+0.3.0
+    * drop py2.7,py35
+    * initial mypy support
+
 0.2.4
     * fixed try/except black that did not properly catch an exception scenario
     * rely on six instead of copying some functions from other projects

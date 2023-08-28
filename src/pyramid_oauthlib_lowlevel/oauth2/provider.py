@@ -1,37 +1,43 @@
-import logging
-
-log = logging.getLogger(__name__)
-
 # stdlib
-# from functools import wraps
+import logging
+import os
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import TYPE_CHECKING
 
-# pypi, upstream
+# pypi
 from oauthlib import oauth2
+from oauthlib.common import add_params_to_uri
 from oauthlib.oauth2 import Server
+from pyramid.httpexceptions import HTTPBadRequest
+from pyramid.httpexceptions import HTTPFound
+from pyramid.httpexceptions import HTTPSeeOther
 
 # from oauthlib.oauth2.rfc6749.endpoints.base import BaseEndpoint
 # from oauthlib.oauth2.rfc6749.endpoints.base import catch_errors_and_unavailability
-from oauthlib.common import add_params_to_uri
-
-# pypi
-# from pyramid.httpexceptions import HTTPUnauthorized
-from pyramid.httpexceptions import HTTPFound
-from pyramid.httpexceptions import HTTPSeeOther
-from pyramid.httpexceptions import HTTPBadRequest
 
 # local
-# from .. import utils
-# from .errors import MiscellaneousOAuth2Error
 from .validator import OAuth2RequestValidator
 from ..utils import create_response
 from ..utils import extract_params
+from ..utils import TYPES_RESPONSE
+
+# from .. import utils
+# from .errors import MiscellaneousOAuth2Error
+
+if TYPE_CHECKING:
+    from pyramid.request import Request as Pyramid_Request
+
+DEBUG_LOGIC = bool(int(os.getenv("PYRAMID_OAUTHLIB_LOWLEVEL__DEBUG_LOGIC", 0)))
+log = logging.getLogger(__name__)
 
 
 # ==============================================================================
 
 
 class OAuth2Provider(object):
-
     # these fields modeled after oauthlib.oauth2.rfc6749.endpoints.base.BaseEndpoint
     _available = True
     _catch_errors = True
@@ -41,8 +47,9 @@ class OAuth2Provider(object):
     _validator_class = None
     _validator = None
 
-    pyramid_request = None
-    server = None  # Server instance
+    pyramid_request: "Pyramid_Request"
+    server: Any  # Server instance
+    # TODO: better typing for `server`
 
     # misc
     error_uri = "/error"
@@ -50,11 +57,11 @@ class OAuth2Provider(object):
 
     def __init__(
         self,
-        pyramid_request,
+        pyramid_request: "Pyramid_Request",
         validator_api_hooks=None,
         validator_class=None,
         server_class=Server,
-        error_uri=None,
+        error_uri: Optional[str] = None,
     ):
         """
         Builds a new Provider instance.
@@ -92,7 +99,7 @@ class OAuth2Provider(object):
         if self.pyramid_request.method != "POST":
             raise HTTPBadRequest("Only `POST` is accepted.")
 
-    def endpoint__validate_authorization_request(self):
+    def endpoint__validate_authorization_request(self) -> Dict:
         """
         This function will sort the parameters and headers out, and pre validate everything.
 
@@ -119,7 +126,7 @@ class OAuth2Provider(object):
         """
         uri, http_method, body, headers = extract_params(self.pyramid_request)
 
-        validity = {}
+        validity: Dict = {}
         if http_method in ("GET", "HEAD"):
             redirect_uri = self.pyramid_request.params.get(
                 "redirect_uri", self.error_uri
@@ -164,7 +171,7 @@ class OAuth2Provider(object):
                 add_params_to_uri(self.error_uri, {"error": "request must be GET"})
             )
 
-    def endpoint__confirm_authorization_request(self):
+    def endpoint__confirm_authorization_request(self) -> TYPES_RESPONSE:
         """
         When consumer confirm the authorization after ``endpoint__validate_authorization_request``
 
@@ -214,7 +221,7 @@ class OAuth2Provider(object):
             # ))
             return HTTPSeeOther(add_params_to_uri(self.error_uri, {"error": str(exc)}))
 
-    def endopoint__token(self, credentials=None):
+    def endopoint__token(self, credentials=None) -> TYPES_RESPONSE:
         """
         handle the token endpoint
         """
@@ -229,11 +236,12 @@ class OAuth2Provider(object):
             log.debug("Authorization successful.")
             return create_response(*ret)
         except Exception as exc:
-            print("Exception", exc)
+            if DEBUG_LOGIC:
+                print("> Exception", exc)
             log.critical(exc)
             return HTTPSeeOther(add_params_to_uri(self.error_uri, {"error": str(exc)}))
 
-    def endpoint__revoke_token(self):
+    def endpoint__revoke_token(self) -> TYPES_RESPONSE:
         """
         handle the token endpoint
         """
@@ -241,6 +249,12 @@ class OAuth2Provider(object):
         self._protected_post_only()
 
         uri, http_method, body, headers = extract_params(self.pyramid_request)
+        if DEBUG_LOGIC:
+            print("> endpoint__revoke_token >")
+            print("  >  uri ", uri)
+            print("  >  http_method ", http_method)
+            print("  >  body ", body)
+            print("  >  headers ", headers)
         try:
             ret = self.server.create_revocation_response(
                 uri, http_method, body, headers
@@ -248,11 +262,12 @@ class OAuth2Provider(object):
             log.debug("Revocation successful.")
             return create_response(*ret)
         except Exception as exc:
-            print("Exception", exc)
+            if DEBUG_LOGIC:
+                print("> Exception", exc)
             log.critical(exc)
             return HTTPSeeOther(add_params_to_uri(self.error_uri, {"error": str(exc)}))
 
-    def verify_request(self, scopes):
+    def verify_request(self, scopes: List[str]) -> bool:
         """
         used to validate
         """

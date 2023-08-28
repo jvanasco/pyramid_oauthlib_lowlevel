@@ -1,39 +1,44 @@
 # stdlib
-import pdb
 import datetime
+import os
+from typing import Any
+from typing import Dict
+from typing import Optional
+from typing import TYPE_CHECKING
 
 # pypi
+from oauthlib.common import Request as oAuth_Request
+from oauthlib.oauth2 import WebApplicationServer
 import sqlalchemy
 import sqlalchemy.orm
-from oauthlib.oauth2 import Server
-from oauthlib.oauth2 import WebApplicationServer
 
-
-# local module
-from pyramid_oauthlib_lowlevel.oauth2.validator import OAuth2RequestValidator_Hooks
-from pyramid_oauthlib_lowlevel.oauth2.validator import OAuth2RequestValidator
-from pyramid_oauthlib_lowlevel.oauth2 import provider as oauth2_provider
-from pyramid_oauthlib_lowlevel.utils import catch_backend_failure
+# local
 from pyramid_oauthlib_lowlevel.client.api_client import ApiClient
-
-# local tests
-from .oauth2_model import DeveloperApplication
-from .oauth2_model import DeveloperApplication_Keyset
+from pyramid_oauthlib_lowlevel.oauth2 import provider as oauth2_provider
+from pyramid_oauthlib_lowlevel.oauth2.validator import OAuth2RequestValidator
+from pyramid_oauthlib_lowlevel.oauth2.validator import OAuth2RequestValidator_Hooks
+from pyramid_oauthlib_lowlevel.utils import catch_backend_failure
 from .oauth2_model import Developer_OAuth2Server_BearerToken
 from .oauth2_model import Developer_OAuth2Server_GrantToken
-from .oauth2_model import OAUTH2__APP_ID
-from .oauth2_model import OAUTH2__APP_KEY
-from .oauth2_model import OAUTH2__APP_SECRET
+from .oauth2_model import DeveloperApplication
+from .oauth2_model import DeveloperApplication_Keyset
 from .oauth2_model import OAUTH2__URL_APP_FLOW_REGISTER_CALLBACK
 from .oauth2_model import OAUTH2__URL_AUTHORITY_FLOWA_AUTHORIZATION
 from .oauth2_model import OAUTH2__URL_AUTHORITY_FLOWA_TOKEN
-from .oauth2_model import OAUTH2__URL_AUTHORITY_REVOKE_TOKEN
 from .oauth2_model import OAUTH2__URL_AUTHORITY_FLOWB_TOKEN
 from .oauth2_model import OAUTH2__URL_AUTHORITY_FLOWB_TOKEN_ALT
 from .oauth2_model import OAUTH2__URL_AUTHORITY_FLOWC_TOKEN_LIMITED
-from .oauth2_model import OAUTH2__URL_AUTHORITY_PROTECTED_RESOURCE
-from .oauth2_model import OAUTH2__URL_APP_FETCH_PROTECTED_RESOURCE
+from .oauth2_model import OAUTH2__URL_AUTHORITY_REVOKE_TOKEN
 
+if TYPE_CHECKING:
+    from pyramid.request import Request as Pyramid_Request
+
+# from .oauth2_model import OAUTH2__APP_ID
+# from .oauth2_model import OAUTH2__APP_KEY
+# from .oauth2_model import OAUTH2__APP_SECRET
+# from .oauth2_model import OAUTH2__URL_APP_FETCH_PROTECTED_RESOURCE
+
+DEBUG_LOGIC = bool(int(os.getenv("PYRAMID_OAUTHLIB_LOWLEVEL__DEBUG_LOGIC", 0)))
 
 # ==============================================================================
 
@@ -58,7 +63,7 @@ class CustomApiClientB(ApiClient):
 
 
 class CustomValidator(OAuth2RequestValidator):
-    def _rotate_refresh_token__True(self, request):
+    def _rotate_refresh_token__True(self, request: oAuth_Request) -> bool:
         """Determine whether to rotate the refresh token. Default, yes.
 
         When access tokens are refreshed the old refresh token can be kept
@@ -73,17 +78,21 @@ class CustomValidator(OAuth2RequestValidator):
         """
         return True
 
-    def _rotate_refresh_token__False(self, request):
+    def _rotate_refresh_token__False(self, request: oAuth_Request) -> bool:
         return False
+
+    # set the default to be the same as the upsteam default
+    rotate_refresh_token = _rotate_refresh_token__True
 
 
 class CustomValidator_Hooks(OAuth2RequestValidator_Hooks):
+    pyramid_request: "Pyramid_Request"
 
     #
     # client getter
     #
     @catch_backend_failure
-    def client_getter(self, client_id=None):
+    def client_getter(self, client_id: Optional[str] = None) -> Any:
         """Retreive a valid client
 
         :param client_id: Unicode client identifier
@@ -94,6 +103,9 @@ class CustomValidator_Hooks(OAuth2RequestValidator_Hooks):
 
             client_id = u'12312341'
         """
+        if DEBUG_LOGIC:
+            print("} CustomValidator_Hooks.client_getter")
+            print("  }  client_id", client_id)
         if not client_id:
             return None
         clientObject = (
@@ -105,9 +117,11 @@ class CustomValidator_Hooks(OAuth2RequestValidator_Hooks):
             )
             .filter(
                 DeveloperApplication_Keyset.client_id == client_id,
-                DeveloperApplication_Keyset.is_active == True,  # noqa
+                DeveloperApplication_Keyset.is_active.is_(True),
             )
-            .options(sqlalchemy.orm.contains_eager("app_keyset_active"))
+            .options(
+                sqlalchemy.orm.contains_eager(DeveloperApplication.app_keyset_active)
+            )
             .first()
         )
         # if not clientObject:
@@ -120,7 +134,9 @@ class CustomValidator_Hooks(OAuth2RequestValidator_Hooks):
     #
     # grant getter and setter | oAuth1 = request_token_(getter|setter)
     #
-    def grant_setter(self, client_id, code, request, *args, **kwargs):
+    def grant_setter(
+        self, client_id: str, code: Dict, request: oAuth_Request, *args, **kwargs
+    ) -> bool:
         """
         A function to save the grant code.
 
@@ -131,6 +147,8 @@ class CustomValidator_Hooks(OAuth2RequestValidator_Hooks):
         def set_grant(client_id, code, request, *args, **kwargs):
             save_grant(client_id, code, request.user, request.scopes)
         """
+        if DEBUG_LOGIC:
+            print("} CustomValidator_Hooks.grant_setter")
         if not self.pyramid_request.active_useraccount_id:
             raise ValueError("The `user` MUST be logged in")
 
@@ -152,13 +170,15 @@ class CustomValidator_Hooks(OAuth2RequestValidator_Hooks):
 
         return True
 
-    def grant_getter(self, client_id, code, *args, **kwargs):
+    def grant_getter(self, client_id: str, code: str, *args, **kwargs) -> Any:
         """
         A method to load a grant.
 
         :param client_id: Unicode client identifier
         :param code: Unicode authorization_code
         """
+        if DEBUG_LOGIC:
+            print("} CustomValidator_Hooks.grant_getter")
         grantObject = (
             self.pyramid_request.dbSession.query(Developer_OAuth2Server_GrantToken)
             .join(
@@ -173,14 +193,13 @@ class CustomValidator_Hooks(OAuth2RequestValidator_Hooks):
             )
             .filter(
                 Developer_OAuth2Server_GrantToken.code == code,
-                Developer_OAuth2Server_GrantToken.is_active == True,  # noqa
+                Developer_OAuth2Server_GrantToken.is_active.is_(True),
                 DeveloperApplication_Keyset.client_id == client_id,
             )
             .options(
-                sqlalchemy.orm.contains_eager("developer_application"),
                 sqlalchemy.orm.contains_eager(
-                    "developer_application.app_keyset_active"
-                ),
+                    Developer_OAuth2Server_GrantToken.developer_application
+                ).contains_eager(DeveloperApplication.app_keyset_active),
             )
             .first()
         )
@@ -188,20 +207,25 @@ class CustomValidator_Hooks(OAuth2RequestValidator_Hooks):
             return None
         return grantObject
 
-    def grant_invalidate(self, grantObject):
+    def grant_invalidate(self, grantObject: Any) -> None:
         """
         This method expects a `grantObject` as a single argument.
         The grant should be deleted or otherwise marked as revoked.
 
         :param grantObject: The grant object loaded by ``grant_getter```
         """
+        if DEBUG_LOGIC:
+            print("} CustomValidator_Hooks.grant_invalidate")
+            print("  }  grantObject.is_active", grantObject.is_active)
         grantObject.is_active = False
         self.pyramid_request.dbSession.flush()
 
     #
     # bearer_token setter
     #
-    def bearer_token_setter(self, token, request, *args, **kwargs):
+    def bearer_token_setter(
+        self, token: Dict, request: oAuth_Request, *args, **kwargs
+    ) -> Any:
         """
         :param token: A Bearer token dict
         :param request: The HTTP Request (oauthlib.common.Request)
@@ -218,6 +242,8 @@ class CustomValidator_Hooks(OAuth2RequestValidator_Hooks):
                 u'scope': u'email address'
             }
         """
+        if DEBUG_LOGIC:
+            print("} CustomValidator_Hooks.bearer_token_setter")
         # what is the context of the token?
         user_id = None
         original_grant_type = None
@@ -236,6 +262,12 @@ class CustomValidator_Hooks(OAuth2RequestValidator_Hooks):
         else:
             raise ValueError("what?!? %s" % request.grant_type)
 
+        if DEBUG_LOGIC:
+            print("  }  TRYING TO CREATE:")
+            print("  }    .original_grant_type", original_grant_type)
+            print("  }    .access_token", token["access_token"])
+            print("  }    .refresh_token", token.get("refresh_token"))
+
         # first, we want to EXPIRE all other bearer tokens for this user
         # this is not required by spec, but is optional
         # TODO: expire the ones that are active but have not hit an expiry date
@@ -245,7 +277,7 @@ class CustomValidator_Hooks(OAuth2RequestValidator_Hooks):
                 Developer_OAuth2Server_BearerToken.developer_application_id
                 == request.client.id,
                 Developer_OAuth2Server_BearerToken.useraccount_id == user_id,
-                Developer_OAuth2Server_BearerToken.is_active == True,  # noqa
+                Developer_OAuth2Server_BearerToken.is_active.is_(True),
                 Developer_OAuth2Server_BearerToken.original_grant_type
                 == original_grant_type,
             )
@@ -253,12 +285,20 @@ class CustomValidator_Hooks(OAuth2RequestValidator_Hooks):
         )
         if liveTokens:
             # note that _token, this way we don't overwrite the `token` dict
+            if DEBUG_LOGIC:
+                print("  }    FOUND other tokes for this user:")
             for _token in liveTokens:
-                _token.is_active = False
+                if DEBUG_LOGIC:
+                    print(
+                        "  }      * LIVE TOKEN WE MUST DROP:",
+                        _token.access_token,
+                        _token.refresh_token,
+                    )
+                self.token_revoke(_token)
             self.pyramid_request.dbSession.flush()
 
         timestamp_expiry = self.pyramid_request.datetime + datetime.timedelta(
-            seconds=token.get("expires_in")
+            seconds=token.get("expires_in", 0)
         )
 
         bearerToken = Developer_OAuth2Server_BearerToken()
@@ -279,7 +319,12 @@ class CustomValidator_Hooks(OAuth2RequestValidator_Hooks):
 
         return bearerToken
 
-    def token_getter(self, access_token=None, refresh_token=None):
+    def token_getter(
+        self,
+        access_token: Optional[str] = None,
+        refresh_token: Optional[str] = None,
+        debug: Optional[str] = None,
+    ) -> Any:
         """
         The function accepts an `access_token` or `refresh_token` parameters,
         and it returns a token object with at least these information:
@@ -294,6 +339,11 @@ class CustomValidator_Hooks(OAuth2RequestValidator_Hooks):
         :param access_token: Unicode access token
         :param refresh_token: Unicode refresh token
         """
+        if DEBUG_LOGIC:
+            print("} CustomValidator_Hooks.token_getter")
+            print("  }  access_token :", access_token)
+            print("  }  refresh_token:", refresh_token)
+            print("  }  debug        :", debug)
         if all((access_token, refresh_token)) or not any((access_token, refresh_token)):
             raise ValueError("Submit `access_token` or `refresh_token`, not both.")
 
@@ -303,13 +353,12 @@ class CustomValidator_Hooks(OAuth2RequestValidator_Hooks):
                 .filter(
                     Developer_OAuth2Server_BearerToken.access_token == access_token,
                     Developer_OAuth2Server_BearerToken.token_type == "Bearer",
-                    Developer_OAuth2Server_BearerToken.is_active == True,  # noqa
+                    Developer_OAuth2Server_BearerToken.is_active.is_(True),
                 )
                 .options(
-                    sqlalchemy.orm.joinedload("developer_application"),
                     sqlalchemy.orm.joinedload(
-                        "developer_application.app_keyset_active"
-                    ),
+                        Developer_OAuth2Server_BearerToken.developer_application
+                    ).joinedload(DeveloperApplication.app_keyset_active),
                 )
                 .first()
             )
@@ -321,26 +370,36 @@ class CustomValidator_Hooks(OAuth2RequestValidator_Hooks):
                 .filter(
                     Developer_OAuth2Server_BearerToken.refresh_token == refresh_token,
                     Developer_OAuth2Server_BearerToken.token_type == "Bearer",
-                    Developer_OAuth2Server_BearerToken.is_active == True,  # noqa
+                    Developer_OAuth2Server_BearerToken.is_active.is_(True),
                 )
                 .options(
-                    sqlalchemy.orm.joinedload("developer_application"),
                     sqlalchemy.orm.joinedload(
-                        "developer_application.app_keyset_active"
-                    ),
+                        Developer_OAuth2Server_BearerToken.developer_application
+                    ).joinedload(DeveloperApplication.app_keyset_active),
                 )
                 .first()
             )
             return bearerToken
-        raise ValueError("foo")
 
-    def token_revoke(self, tokenObject):
+        raise ValueError("Unreachable")
+
+    def token_revoke(
+        self,
+        tokenObject: Any,
+        debug: Optional[str] = None,
+    ) -> None:
         """
         This method expects a `tokenObject` as a single argument.
         The token should be deleted or otherwise marked as revoked.
 
         :param tokenObject: The grant object loaded by ``token_getter```
         """
+        if DEBUG_LOGIC:
+            print("} CustomValidator_Hooks.token_revoke")
+            print("  }  tokenObject.is_active", tokenObject.is_active)
+            print("  }  tokenObject.token_type", tokenObject.token_type)
+            print("  }  tokenObject.access_token", tokenObject.access_token)
+            print("  }  tokenObject.refresh_token", tokenObject.refresh_token)
         tokenObject.is_active = False
         tokenObject.timestamp_revoked = self.pyramid_request.datetime
         self.pyramid_request.dbSession.flush()
@@ -349,7 +408,9 @@ class CustomValidator_Hooks(OAuth2RequestValidator_Hooks):
 # ==============================================================================
 
 
-def new_oauth2Provider(pyramid_request):
+def new_oauth2Provider(
+    pyramid_request: "Pyramid_Request",
+) -> oauth2_provider.OAuth2Provider:
     """this is used to build a new auth"""
     validatorHooks = CustomValidator_Hooks(pyramid_request)
     provider = oauth2_provider.OAuth2Provider(
@@ -360,7 +421,9 @@ def new_oauth2Provider(pyramid_request):
     return provider
 
 
-def new_oauth2ProviderLimited(pyramid_request):
+def new_oauth2ProviderLimited(
+    pyramid_request: "Pyramid_Request",
+) -> oauth2_provider.OAuth2Provider:
     """this is used to build a new auth"""
     validatorHooks = CustomValidator_Hooks(pyramid_request)
     provider = oauth2_provider.OAuth2Provider(
