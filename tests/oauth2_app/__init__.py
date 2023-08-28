@@ -106,6 +106,14 @@ def main(global_config, **settings):
         "application:account:refresh-token", "/application/account/refresh-token"
     )
     config.add_route(
+        "application:account:refresh-token-recycle",
+        "/application/account/refresh-token-recycle",
+    )
+    config.add_route(
+        "application:account:refresh-token-rotate",
+        "/application/account/refresh-token-rotate",
+    )
+    config.add_route(
         "application:account:revoke-token", "/application/account/revoke-token"
     )
 

@@ -72,8 +72,11 @@ OAUTH2__URL_APP_FLOW_REGISTER_CALLBACK_SUCCESS = (
 OAUTH2__URL_APP_FETCH_PROTECTED_RESOURCE = (
     "https://app.example.com/application/account/fetch-protected-resource"
 )
-OAUTH2__URL_APP_REFRESH_TOKEN = (
+OAUTH2__URL_APP_REFRESH_TOKEN = (  # refresh by rotation
     "https://app.example.com/application/account/refresh-token"
+)
+OAUTH2__URL_APP_REFRESH_TOKEN_RECYCLE = (  # refresh by recycling
+    "https://app.example.com/application/account/refresh-token-recycle"
 )
 OAUTH2__URL_APP_REVOKE_TOKEN = (
     "https://app.example.com/application/account/revoke-token"

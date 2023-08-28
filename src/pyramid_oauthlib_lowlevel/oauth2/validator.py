@@ -59,6 +59,9 @@ class OAuth2RequestValidator_Hooks(object):
 
         :param client_id: The client/consumer key.
         """
+        if DEBUG_LOGIC:
+            print("> OAuth2RequestValidator_Hooks.ensure_request_client")
+            print("  >  client_id", client_id)
         if not request.client:
             request.client = self.client_getter(client_id=client_id)
         # should this be in the client_getter ?
@@ -66,7 +69,7 @@ class OAuth2RequestValidator_Hooks(object):
             raise InvalidClientIdError("Invalid Client")
 
     #
-    # access token getter and setter
+    # client getter
     #
     def client_getter(
         self,

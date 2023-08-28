@@ -2,10 +2,9 @@
 """
 import os
 import re
-import sys
 
-from setuptools import setup
 from setuptools import find_packages
+from setuptools import setup
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
@@ -24,7 +23,6 @@ requires = [
     "pyramid",
     "requests_oauthlib",
     "requests",
-    "twython",
 ]
 tests_require = [
     "pyramid_formencode_classic",

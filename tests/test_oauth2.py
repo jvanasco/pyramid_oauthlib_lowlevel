@@ -314,6 +314,28 @@ class PyramidTestApp(unittest.TestCase):
             # return in a format tailored for `requests`
             return (int(res.status.split(" ")[0]), res.headers, res.body)
 
+        def callback__app_refresh_token_recycle(req, test_env=test_env):
+            """/application/account/refresh-token-recycle is visited by the USER"""
+            self._debug_callback(
+                "test_valid_flow__registration", "callback__app_refresh_token_recycle"
+            )
+            (_path, _qs) = parse_request_simple(req)
+
+            testapp_app = test_env["testapp_app"]
+            res = testapp_app.get(
+                "/application/account/refresh-token-recycle",
+                headers=req.headers,
+                extra_environ=test_env["extra_environ_app"],
+                status=200,
+            )
+            test_env["requests_session_app"].cookies.update(
+                testapp_app.cookies
+            )  # update the session with the cookies from the response
+
+            # status is '200 OK'
+            # return in a format tailored for `requests`
+            return (int(res.status.split(" ")[0]), res.headers, res.body)
+
         def callback__app_revoke_token(req, test_env=test_env):
             """/application/account/revoke-token is visited by the USER"""
             self._debug_callback(
@@ -403,6 +425,11 @@ class PyramidTestApp(unittest.TestCase):
                 responses.GET,
                 oauth2_model.OAUTH2__URL_APP_REFRESH_TOKEN,  # https://app.example.com/application/account/refresh-token
                 callback=callback__app_refresh_token,
+            )
+            rsps.add_callback(
+                responses.GET,
+                oauth2_model.OAUTH2__URL_APP_REFRESH_TOKEN_RECYCLE,  # https://app.example.com/application/account/refresh-token-recycle
+                callback=callback__app_refresh_token_recycle,
             )
             rsps.add_callback(
                 responses.GET,
@@ -592,8 +619,16 @@ class PyramidTestApp(unittest.TestCase):
             # okay try a refresh
             # the oauth client is on the server, not our commandline.
             # so we visit this page, where it will refresh the token
+            # NOTE: this refresh attempt will rotate the token
             resProtectedAttempt = test_env["requests_session_app"].get(
                 oauth2_model.OAUTH2__URL_APP_REFRESH_TOKEN
+            )
+            assert resProtectedAttempt.status_code == 200
+            assert resProtectedAttempt.text == "refreshed_token"
+
+            # NOTE: this refresh attempt will RECYCLE the token
+            resProtectedAttempt = test_env["requests_session_app"].get(
+                oauth2_model.OAUTH2__URL_APP_REFRESH_TOKEN_RECYCLE
             )
             assert resProtectedAttempt.status_code == 200
             assert resProtectedAttempt.text == "refreshed_token"

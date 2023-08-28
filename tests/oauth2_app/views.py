@@ -325,23 +325,31 @@ class ExampleApp_User_AccountViews(Handler):
 
     @view_config(route_name="application:account:home", renderer="string")
     def account_home(self):
+        if DEBUG_LOGIC:
+            print(") ExampleApp_User_AccountViews.account_home")
         if not self.request.active_useraccount_id:
             return HTTPSeeOther("/application/account/login-form")
         return "application|home|user=%s" % self.request.active_useraccount_id
 
     @view_config(route_name="application:account:login-form", renderer="string")
     def account_login_form(self):
+        if DEBUG_LOGIC:
+            print(") ExampleApp_User_AccountViews.account_login_form")
         if self.request.active_useraccount_id:
             return HTTPSeeOther("/application/account/home")
         return "application|login-form"
 
     @view_config(route_name="application:account:login-submit", renderer="string")
     def account_login_submit(self):
+        if DEBUG_LOGIC:
+            print(") ExampleApp_User_AccountViews.account_login_submit")
         self.request.session["active_useraccount_id"] = USERID_ACTIVE__APPLICATION
         return HTTPSeeOther("/application/account/home")
 
     @view_config(route_name="application:account:logout", renderer="string")
     def account_logout(self):
+        if DEBUG_LOGIC:
+            print(") ExampleApp_User_AccountViews.account_logout")
         if self.request.active_useraccount_id:
             self.request.session.invalidate()
         return HTTPSeeOther("/application/account/login-form")
@@ -355,6 +363,8 @@ class ExampleApp_User_AccountViews(Handler):
 
         This route will load the token and use it to make an oAuth2 request against the Authority system.
         """
+        if DEBUG_LOGIC:
+            print(") ExampleApp_User_AccountViews.fetch_protected_resource")
         if not self.request.active_useraccount_id:
             return HTTPSeeOther("/application/account/login-form")
 
@@ -382,19 +392,146 @@ class ExampleApp_User_AccountViews(Handler):
             raise ValueError("invalid")
         return resp.text
 
-    @view_config(route_name="application:account:refresh-token", renderer="string")
-    def refresh_token(self):
+    @view_config(
+        route_name="application:account:refresh-token-recycle", renderer="string"
+    )
+    def refresh_token_recycle(self):
         """
         refresh the User's token from the server
         """
+        if DEBUG_LOGIC:
+            print(") ExampleApp_User_AccountViews.refresh_token_recycle")
         if not self.request.active_useraccount_id:
             return HTTPSeeOther("/application/account/login-form")
         if self.request.active_useraccount_id != USERID_ACTIVE__APPLICATION:
             raise ValueError("not the expected user!")
 
-        # ensure we start this test with the right expectations
-        # we want to ensure we start this with a ROTATION
-        # which will issue a new token
+        assert (
+            oauth2_utils.CustomValidator.rotate_refresh_token
+            == oauth2_utils.CustomValidator._rotate_refresh_token__True
+        )
+        # monkeypatch us into recycle mode
+        oauth2_utils.CustomValidator.rotate_refresh_token = (
+            oauth2_utils.CustomValidator._rotate_refresh_token__False
+        )
+        assert (
+            oauth2_utils.CustomValidator.rotate_refresh_token
+            == oauth2_utils.CustomValidator._rotate_refresh_token__False
+        )
+
+        # what is our token?
+        # load from the `Developer_OAuth2Client_` table
+        clientToken = (
+            self.request.dbSession.query(Developer_OAuth2Client_BearerToken)
+            .filter(
+                Developer_OAuth2Client_BearerToken.useraccount_id
+                == USERID_ACTIVE__APPLICATION,
+                Developer_OAuth2Client_BearerToken.original_grant_type
+                == "authorization_code",
+                Developer_OAuth2Client_BearerToken.is_active.is_(True),
+            )
+            .first()
+        )
+        if not clientToken:
+            raise ValueError("no token for this user!")
+
+        # grab this data to send upstream
+        token_dict = {
+            "access_token": clientToken.access_token,
+            "token_type": "Bearer",
+            "refresh_token": clientToken.refresh_token,
+        }
+
+        # sending the client auth params is not required by spec, but is required by oauthlib2
+        extra = {"client_id": OAUTH2__APP_KEY, "client_secret": OAUTH2__APP_SECRET}
+        sess = OAuth2Session(client_id=OAUTH2__APP_KEY, token=token_dict)
+        newToken_dict = sess.refresh_token(
+            oauth2_utils.OAUTH2__URL_AUTHORITY_FLOWA_TOKEN, **extra
+        )
+        if not isinstance(newToken_dict, OAuth2Token):
+            raise ValueError("did not load an `OAuth2Token``")
+
+        if DEBUG_LOGIC:
+            print(") ------")
+            print("  )  refresh_token_recycle")
+            print("  )  token - original:", token_dict)
+            print("  )  token - new     :", newToken_dict)
+
+        # save to the `Developer_OAuth2Client_` table
+        newToken_db = Developer_OAuth2Client_BearerToken()
+        newToken_db.useraccount_id = self.request.active_useraccount_id
+        newToken_db.access_token = newToken_dict["access_token"]
+        newToken_db.refresh_token = newToken_dict["refresh_token"]
+        newToken_db.scope = " ".join(newToken_dict["scope"])
+        newToken_db.timestamp_created = self.request.datetime
+        newToken_db.timestamp_expires = (
+            newToken_db.timestamp_created
+            + datetime.timedelta(seconds=newToken_dict["expires_in"])
+        )  # or use newToken_dict['expires_at]
+        newToken_db.grant_type = "refresh_token"
+        newToken_db.original_grant_type = "authorization_code"
+        self.request.dbSession.add(newToken_db)
+        self.request.dbSession.flush()
+
+        # mark the original as inactive since we have a new one
+        clientToken.is_active = False
+        self.request.dbSession.flush()
+
+        # we recycled the refresh_token!
+        assert clientToken.access_token != newToken_db.access_token
+        assert clientToken.refresh_token == newToken_db.refresh_token
+
+        # check to ensure we have the right number of active tokens **Client**
+        _clientTokens = (
+            self.request.dbSession.query(Developer_OAuth2Client_BearerToken)
+            .filter(
+                Developer_OAuth2Client_BearerToken.useraccount_id
+                == USERID_ACTIVE__APPLICATION,
+                Developer_OAuth2Client_BearerToken.original_grant_type
+                == "authorization_code",
+                Developer_OAuth2Client_BearerToken.is_active.is_(True),
+            )
+            .all()
+        )
+        assert len(_clientTokens) == 1
+
+        # check to ensure we have the right number of active tokens **Server**
+        _serverTokens = (
+            self.request.dbSession.query(Developer_OAuth2Server_BearerToken)
+            .filter(
+                Developer_OAuth2Server_BearerToken.useraccount_id
+                == USERID_ACTIVE__AUTHORITY,
+                Developer_OAuth2Server_BearerToken.original_grant_type
+                == "authorization_code",
+                Developer_OAuth2Server_BearerToken.is_active.is_(True),
+            )
+            .all()
+        )
+        assert len(_serverTokens) == 1
+
+        # monkeypatch us back
+        oauth2_utils.CustomValidator.rotate_refresh_token = (
+            oauth2_utils.CustomValidator._rotate_refresh_token__True
+        )
+        assert (
+            oauth2_utils.CustomValidator.rotate_refresh_token
+            == oauth2_utils.CustomValidator._rotate_refresh_token__True
+        )
+
+        return "refreshed_token"
+
+    @view_config(route_name="application:account:refresh-token", renderer="string")
+    def refresh_token_rotate(self):
+        """
+        refresh the User's token from the server
+        """
+        if DEBUG_LOGIC:
+            print(") ExampleApp_User_AccountViews.refresh_token_rotate")
+        if not self.request.active_useraccount_id:
+            return HTTPSeeOther("/application/account/login-form")
+        if self.request.active_useraccount_id != USERID_ACTIVE__APPLICATION:
+            raise ValueError("not the expected user!")
+
         assert (
             oauth2_utils.CustomValidator.rotate_refresh_token
             == oauth2_utils.CustomValidator._rotate_refresh_token__True
@@ -434,7 +571,7 @@ class ExampleApp_User_AccountViews(Handler):
 
         if DEBUG_LOGIC:
             print(") ------")
-            print("  )  refresh_token - A")
+            print("  )  refresh_token_rotate")
             print("  )  token - original:", token_dict)
             print("  )  token - new     :", newToken_dict)
 
@@ -444,13 +581,13 @@ class ExampleApp_User_AccountViews(Handler):
         newToken_db.access_token = newToken_dict["access_token"]
         newToken_db.refresh_token = newToken_dict["refresh_token"]
         newToken_db.scope = " ".join(newToken_dict["scope"])
+        newToken_db.grant_type = "refresh_token"
+        newToken_db.original_grant_type = "authorization_code"
         newToken_db.timestamp_created = self.request.datetime
         newToken_db.timestamp_expires = (
             newToken_db.timestamp_created
             + datetime.timedelta(seconds=newToken_dict["expires_in"])
         )  # or use newToken_dict['expires_at]
-        newToken_db.grant_type = "refresh_token"
-        newToken_db.original_grant_type = "authorization_code"
         self.request.dbSession.add(newToken_db)
         self.request.dbSession.flush()
 
@@ -458,7 +595,7 @@ class ExampleApp_User_AccountViews(Handler):
         clientToken.is_active = False
         self.request.dbSession.flush()
 
-        # we don't recycle the refresh_token; we renew it
+        # we don't recycle the refresh_token; we replaced it
         assert clientToken.access_token != newToken_db.access_token
         assert clientToken.refresh_token != newToken_db.refresh_token
 
@@ -489,103 +626,6 @@ class ExampleApp_User_AccountViews(Handler):
             .all()
         )
         assert len(_serverTokens) == 1
-
-        # we could return here, but let's try another method to ensure our tests
-        # work correctly on the other method of token rotation...
-        ## return 'refreshed_token'
-
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-        # monkeypatch this to ensure we do not ROTATE the token
-        # and instead issue a new token
-        oauth2_utils.CustomValidator.rotate_refresh_token = (
-            oauth2_utils.CustomValidator._rotate_refresh_token__False
-        )
-        assert (
-            oauth2_utils.CustomValidator.rotate_refresh_token
-            == oauth2_utils.CustomValidator._rotate_refresh_token__False
-        )
-
-        # grab this data to send upstream
-        token_dict = {
-            "access_token": newToken_db.access_token,
-            "token_type": "Bearer",
-            "refresh_token": newToken_db.refresh_token,
-        }
-
-        # sending the client auth params is not required by spec, but is required by oauthlib2
-        extra = {"client_id": OAUTH2__APP_KEY, "client_secret": OAUTH2__APP_SECRET}
-        sess = OAuth2Session(client_id=OAUTH2__APP_KEY, token=token_dict)
-        newToken_dict2 = sess.refresh_token(
-            oauth2_utils.OAUTH2__URL_AUTHORITY_FLOWA_TOKEN, **extra
-        )
-        if not isinstance(newToken_dict, OAuth2Token):
-            raise ValueError("did not load an `OAuth2Token``")
-
-        if DEBUG_LOGIC:
-            print(") ------")
-            print("  )  refresh_token - B")
-            print("  )  token - original:", token_dict)
-            print("  )  token - new     :", newToken_dict2)
-
-        # save to the `Developer_OAuth2Client_` table
-        newToken_db2 = Developer_OAuth2Client_BearerToken()
-        newToken_db2.useraccount_id = self.request.active_useraccount_id
-        newToken_db2.access_token = newToken_dict2["access_token"]
-        newToken_db2.refresh_token = newToken_dict2["refresh_token"]
-        newToken_db2.scope = " ".join(newToken_dict2["scope"])
-        newToken_db2.grant_type = "refresh_token"
-        newToken_db2.original_grant_type = "authorization_code"
-        newToken_db2.timestamp_created = self.request.datetime
-        newToken_db2.timestamp_expires = (
-            newToken_db.timestamp_created
-            + datetime.timedelta(seconds=newToken_dict2["expires_in"])
-        )  # or use newToken_dict['expires_at]
-        self.request.dbSession.add(newToken_db2)
-        self.request.dbSession.flush()
-
-        # mark this as inactive since we have a new one
-        newToken_db2.is_active = False
-        self.request.dbSession.flush()
-
-        # we don't recycle the refresh_token; we renew it
-        assert newToken_db.access_token != newToken_db2.access_token
-        assert newToken_db.refresh_token == newToken_db2.refresh_token
-
-        # check to ensure we have the right number of active tokens **Client**
-        _clientTokens = (
-            self.request.dbSession.query(Developer_OAuth2Client_BearerToken)
-            .filter(
-                Developer_OAuth2Client_BearerToken.useraccount_id
-                == self.request.active_useraccount_id,
-                Developer_OAuth2Client_BearerToken.original_grant_type
-                == "authorization_code",
-                Developer_OAuth2Client_BearerToken.is_active.is_(True),
-            )
-            .all()
-        )
-        assert len(_clientTokens) == 1
-
-        # check to ensure we have the right number of active tokens **Server**
-        _serverTokens = (
-            self.request.dbSession.query(Developer_OAuth2Server_BearerToken)
-            .filter(
-                Developer_OAuth2Server_BearerToken.useraccount_id
-                == USERID_ACTIVE__AUTHORITY,
-                Developer_OAuth2Server_BearerToken.original_grant_type
-                == "authorization_code",
-                Developer_OAuth2Server_BearerToken.is_active.is_(True),
-            )
-            .all()
-        )
-        assert len(_serverTokens) == 1
-
-        # reset the monkeypatch
-        oauth2_utils.CustomValidator.rotate_refresh_token = (
-            oauth2_utils.CustomValidator._rotate_refresh_token__True
-        )
-
         return "refreshed_token"
 
     @view_config(route_name="application:account:revoke-token", renderer="string")
@@ -593,6 +633,8 @@ class ExampleApp_User_AccountViews(Handler):
         """
         revoke the User's token on the server
         """
+        if DEBUG_LOGIC:
+            print(") ExampleApp_User_AccountViews.revoke_token")
         if not self.request.active_useraccount_id:
             return HTTPSeeOther("/application/account/login-form")
         if self.request.active_useraccount_id != USERID_ACTIVE__APPLICATION:
@@ -639,7 +681,7 @@ class ExampleApp_User_AccountViews(Handler):
                 == USERID_ACTIVE__AUTHORITY,
                 Developer_OAuth2Server_BearerToken.original_grant_type
                 == "authorization_code",
-                Developer_OAuth2Server_BearerToken.is_(False),
+                Developer_OAuth2Server_BearerToken.is_active.is_(False),
                 Developer_OAuth2Server_BearerToken.access_token
                 == clientToken.access_token,
             )

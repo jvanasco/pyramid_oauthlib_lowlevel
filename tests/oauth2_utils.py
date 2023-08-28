@@ -103,6 +103,9 @@ class CustomValidator_Hooks(OAuth2RequestValidator_Hooks):
 
             client_id = u'12312341'
         """
+        if DEBUG_LOGIC:
+            print("} CustomValidator_Hooks.client_getter")
+            print("  }  client_id", client_id)
         if not client_id:
             return None
         clientObject = (
@@ -144,6 +147,8 @@ class CustomValidator_Hooks(OAuth2RequestValidator_Hooks):
         def set_grant(client_id, code, request, *args, **kwargs):
             save_grant(client_id, code, request.user, request.scopes)
         """
+        if DEBUG_LOGIC:
+            print("} CustomValidator_Hooks.grant_setter")
         if not self.pyramid_request.active_useraccount_id:
             raise ValueError("The `user` MUST be logged in")
 
@@ -172,6 +177,8 @@ class CustomValidator_Hooks(OAuth2RequestValidator_Hooks):
         :param client_id: Unicode client identifier
         :param code: Unicode authorization_code
         """
+        if DEBUG_LOGIC:
+            print("} CustomValidator_Hooks.grant_getter")
         grantObject = (
             self.pyramid_request.dbSession.query(Developer_OAuth2Server_GrantToken)
             .join(
@@ -255,6 +262,12 @@ class CustomValidator_Hooks(OAuth2RequestValidator_Hooks):
         else:
             raise ValueError("what?!? %s" % request.grant_type)
 
+        if DEBUG_LOGIC:
+            print("  }  TRYING TO CREATE:")
+            print("  }    .original_grant_type", original_grant_type)
+            print("  }    .access_token", token["access_token"])
+            print("  }    .refresh_token", token.get("refresh_token"))
+
         # first, we want to EXPIRE all other bearer tokens for this user
         # this is not required by spec, but is optional
         # TODO: expire the ones that are active but have not hit an expiry date
@@ -273,10 +286,6 @@ class CustomValidator_Hooks(OAuth2RequestValidator_Hooks):
         if liveTokens:
             # note that _token, this way we don't overwrite the `token` dict
             if DEBUG_LOGIC:
-                print("  }  TRYING TO CREATE:")
-                print("  }    .original_grant_type", original_grant_type)
-                print("  }    .access_token", token["access_token"])
-                print("  }    .refresh_token", token.get("refresh_token"))
                 print("  }    FOUND other tokes for this user:")
             for _token in liveTokens:
                 if DEBUG_LOGIC:
