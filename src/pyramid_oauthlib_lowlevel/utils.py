@@ -23,7 +23,7 @@ from .errors import BackendError
 # ==============================================================================
 
 TYPES_RESPONSE = Union[Response, HTTPSeeOther]
-TYPES_SESSION_OPTIONAL = Union[Session, scoped_session[Any], None]
+TYPES_SESSION_OPTIONAL = Union[Session, scoped_session, None]
 
 TYPE_EXTRACTED_PARAMS = Tuple[str, str, Dict, Dict]
 
