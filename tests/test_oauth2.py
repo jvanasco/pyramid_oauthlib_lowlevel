@@ -2,6 +2,7 @@
 import logging
 import os
 import re
+from typing import TYPE_CHECKING
 import unittest
 from urllib.parse import parse_qsl
 
@@ -842,10 +843,10 @@ class PyramidTestApp(unittest.TestCase):
             assert "Only `POST` is accepted." in res.text
 
             # can we revoke the token?
-            token_result = apiClient.revoke_access_token(
+            token_result_revoke = apiClient.revoke_access_token(
                 token=token_result.get("access_token")
             )
-            assert token_result is True
+            assert token_result_revoke is True
 
             # now try the limited endpoint!
             try:
@@ -854,6 +855,8 @@ class PyramidTestApp(unittest.TestCase):
                 raise ValueError("we shold not get here")
             except ApiError as exc:
                 assert exc.msg == "Unable to obtain OAuth 2 access token."
+                if TYPE_CHECKING:
+                    assert exc.original_response is not None
                 assert (
                     exc.original_response.text == '{"error": "unsupported_grant_type"}'
                 )

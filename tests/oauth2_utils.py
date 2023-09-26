@@ -161,7 +161,7 @@ class CustomValidator_Hooks(OAuth2RequestValidator_Hooks):
         grantObject.timestamp_created = self.pyramid_request.datetime
         grantObject.is_active = True
         grantObject.redirect_uri = request.redirect_uri
-        grantObject.code = code.get("code")  # this is a dict with code|state
+        grantObject.code = code.get("code", "")  # this is a dict with code|state
         grantObject.timestamp_expires = (
             grantObject.timestamp_created + datetime.timedelta(minutes=10)
         )

@@ -2,11 +2,13 @@
 
 # stdlib
 import datetime
+from typing import Optional
 
 # pypi
 import sqlalchemy as sa
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.ext.declarative import DeclarativeMeta
+from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm import Mapped
+from sqlalchemy.orm import mapped_column
 
 # ==============================================================================
 
@@ -45,7 +47,9 @@ USERID_ACTIVE__AUTHORITY = 42
 
 # mymetadata = MetaData()
 # Base = declarative_base(metadata=mymetadata)
-Base: DeclarativeMeta = declarative_base()
+# Base: DeclarativeMeta = declarative_base()
+class Base(DeclarativeBase):
+    pass
 
 
 # ==============================================================================
@@ -53,7 +57,7 @@ Base: DeclarativeMeta = declarative_base()
 
 class Useraccount(Base):
     __tablename__ = "useraccount"
-    id = sa.Column(sa.Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
 
 
 class DeveloperApplication(Base):
@@ -74,17 +78,21 @@ class DeveloperApplication(Base):
     """
 
     __tablename__ = "developer_application"
-    id = sa.Column(sa.Integer, primary_key=True)
-    is_active = sa.Column(sa.Boolean, nullable=True, default=True)
-    useraccount_id__owner = sa.Column(
-        sa.Integer, sa.ForeignKey("useraccount.id"), nullable=True
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    is_active: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=True
     )
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    app_name_unique = sa.Column(sa.Unicode(32), nullable=False)
-    app_description = sa.Column(sa.Unicode(200), nullable=False)
-    app_website = sa.Column(sa.Unicode(200), nullable=False)
-    app_scope = sa.Column(sa.Unicode(200), nullable=True)
-    callback_url = sa.Column(sa.Unicode(200), nullable=True)
+    useraccount_id__owner: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("useraccount.id"), nullable=False
+    )
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    app_name_unique: Mapped[str] = mapped_column(sa.Unicode(32), nullable=False)
+    app_description: Mapped[str] = mapped_column(sa.Unicode(200), nullable=False)
+    app_website: Mapped[str] = mapped_column(sa.Unicode(200), nullable=False)
+    app_scope: Mapped[Optional[str]] = mapped_column(sa.Unicode(200), nullable=True)
+    callback_url: Mapped[Optional[str]] = mapped_column(sa.Unicode(200), nullable=True)
 
     app_keyset_active = sa.orm.relationship(
         "DeveloperApplication_Keyset",
@@ -132,15 +140,21 @@ class DeveloperApplication(Base):
 
 class DeveloperApplication_Keyset(Base):
     __tablename__ = "developer_application_keyset"
-    id = sa.Column(sa.Integer, primary_key=True)
-    developer_application_id = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    developer_application_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("developer_application.id"), nullable=False
     )
-    is_active = sa.Column(sa.Boolean, nullable=True, default=True)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    timestamp_deactivated = sa.Column(sa.DateTime, nullable=True)
-    consumer_key = sa.Column(sa.Unicode(64), nullable=False)
-    consumer_secret = sa.Column(sa.Unicode(64), nullable=False)
+    is_active: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=True
+    )
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    timestamp_deactivated: Mapped[Optional[datetime.datetime]] = mapped_column(
+        sa.DateTime, nullable=True
+    )
+    consumer_key: Mapped[str] = mapped_column(sa.Unicode(64), nullable=False)
+    consumer_secret: Mapped[str] = mapped_column(sa.Unicode(64), nullable=False)
 
     developer_application = sa.orm.relationship(
         "DeveloperApplication",
@@ -170,24 +184,38 @@ class Developer_oAuth1Server_TokenRequest(Base):
     """
 
     __tablename__ = "developer__oauth1_server__token_request"
-    id = sa.Column(sa.Integer, primary_key=True)
-    developer_application_id = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    developer_application_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("developer_application.id"), nullable=False
     )
-    useraccount_id = sa.Column(
-        sa.Integer, sa.ForeignKey("useraccount.id"), nullable=True
+    useraccount_id: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("useraccount.id"), nullable=False
     )
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    timestamp_expires = sa.Column(sa.DateTime, nullable=True)
-    _realms = sa.Column(sa.Unicode(255), nullable=False)
-    oauth_token = sa.Column(sa.Unicode(1000), nullable=False)
-    oauth_token_secret = sa.Column(sa.Unicode(1000), nullable=False)
-    oauth_verifier = sa.Column(sa.Unicode(1000), nullable=True)
-    oauth_version = sa.Column(sa.Unicode(5), nullable=False, default="1")
-    redirect_uri = sa.Column(sa.Unicode(255), nullable=False)
-    oauth_callback_confirmed = sa.Column(sa.Unicode(1000), nullable=False)
-    is_rejected = sa.Column(sa.Boolean, nullable=True, default=None)
-    is_active = sa.Column(sa.Boolean, nullable=True, default=True)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    timestamp_expires: Mapped[Optional[datetime.datetime]] = mapped_column(
+        sa.DateTime, nullable=True
+    )
+    _realms: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+    oauth_token: Mapped[str] = mapped_column(sa.Unicode(1000), nullable=False)
+    oauth_token_secret: Mapped[str] = mapped_column(sa.Unicode(1000), nullable=False)
+    oauth_verifier: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(1000), nullable=True
+    )
+    oauth_version: Mapped[str] = mapped_column(
+        sa.Unicode(5), nullable=False, default="1"
+    )
+    redirect_uri: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+    oauth_callback_confirmed: Mapped[str] = mapped_column(
+        sa.Unicode(1000), nullable=False
+    )
+    is_rejected: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=None
+    )
+    is_active: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=True
+    )
 
     client = sa.orm.relationship(
         "DeveloperApplication",
@@ -243,14 +271,16 @@ class Developer_oAuth1Server_Nonce(Base):
     """
 
     __tablename__ = "developer__oauth1_server__nonce"
-    id = sa.Column(sa.Integer, primary_key=True)
-    timestamp_created = sa.Column(sa.Integer, nullable=False)
-    nonce = sa.Column(sa.Unicode(40), nullable=False)
-    developer_application_id = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.Integer, nullable=False
+    )
+    nonce: Mapped[str] = mapped_column(sa.Unicode(40), nullable=False)
+    developer_application_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("developer_application.id"), nullable=False
     )
-    request_token = sa.Column(sa.Unicode(64), nullable=True)
-    access_token = sa.Column(sa.Unicode(64), nullable=True)
+    request_token: Mapped[Optional[str]] = mapped_column(sa.Unicode(64), nullable=True)
+    access_token: Mapped[Optional[str]] = mapped_column(sa.Unicode(64), nullable=True)
 
     client = sa.orm.relationship(
         "DeveloperApplication",
@@ -287,21 +317,29 @@ class Developer_oAuth1Server_TokenAccess(Base):
     """
 
     __tablename__ = "developer__oauth1_server__token_access"
-    id = sa.Column(sa.Integer, primary_key=True)
-    oauth_token = sa.Column(sa.Unicode(1000), nullable=False)
-    oauth_token_secret = sa.Column(sa.Unicode(1000), nullable=False)
-    _realms = sa.Column(sa.Unicode(255), nullable=False)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    token_type = sa.Column(sa.Unicode(32), nullable=False, default="bearer")
-    developer_application_id = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    oauth_token: Mapped[str] = mapped_column(sa.Unicode(1000), nullable=False)
+    oauth_token_secret: Mapped[str] = mapped_column(sa.Unicode(1000), nullable=False)
+    _realms: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    token_type: Mapped[str] = mapped_column(
+        sa.Unicode(32), nullable=False, default="bearer"
+    )
+    developer_application_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("developer_application.id"), nullable=False
     )
-    useraccount_id = sa.Column(
+    useraccount_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("useraccount.id"), nullable=False
     )
-    oauth_version = sa.Column(sa.Unicode(5), nullable=False, default="1")
-    timestamp_expired = sa.Column(sa.Integer, nullable=True)
-    is_active = sa.Column(sa.Boolean, nullable=True, default=True)
+    oauth_version: Mapped[str] = mapped_column(
+        sa.Unicode(5), nullable=False, default="1"
+    )
+    timestamp_expired: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
+    is_active: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=True
+    )
 
     client = sa.orm.relationship(
         "DeveloperApplication",
@@ -337,22 +375,30 @@ class Developer_oAuth1Client_TokenAccess(Base):
     """
 
     __tablename__ = "developer__oauth1_client__token_access"
-    id = sa.Column(sa.Integer, primary_key=True)
-    developer_application_id = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    developer_application_id = mapped_column(
         sa.Integer, sa.ForeignKey("developer_application.id"), nullable=False
     )
-    useraccount_id = sa.Column(
+    useraccount_id = mapped_column(
         sa.Integer, sa.ForeignKey("useraccount.id"), nullable=False
     )
 
-    oauth_token = sa.Column(sa.Unicode(1000), nullable=False)
-    oauth_token_secret = sa.Column(sa.Unicode(1000), nullable=False)
-    _realms = sa.Column(sa.Unicode(255), nullable=False)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    token_type = sa.Column(sa.Unicode(32), nullable=False, default="bearer")
-    oauth_version = sa.Column(sa.Unicode(5), nullable=False, default="1")
-    timestamp_expired = sa.Column(sa.Integer, nullable=True)
-    is_active = sa.Column(sa.Boolean, nullable=True, default=True)
+    oauth_token: Mapped[str] = mapped_column(sa.Unicode(1000), nullable=False)
+    oauth_token_secret: Mapped[str] = mapped_column(sa.Unicode(1000), nullable=False)
+    _realms: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    token_type: Mapped[str] = mapped_column(
+        sa.Unicode(32), nullable=False, default="bearer"
+    )
+    oauth_version: Mapped[str] = mapped_column(
+        sa.Unicode(5), nullable=False, default="1"
+    )
+    timestamp_expired: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
+    is_active: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=True
+    )
 
     @property
     def realms(self):
@@ -391,6 +437,6 @@ def initialize(engine, session):
     keyset.consumer_secret = OAUTH1__APP_SECRET
     session.add(keyset)
 
-    app.keyset = keyset
+    app.app_keyset_active = keyset
     session.flush()
     session.commit()

@@ -5,11 +5,14 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Type
 from typing import TYPE_CHECKING
+from typing import Tuple
 
 # pypi
 from oauthlib import oauth2
 from oauthlib.common import add_params_to_uri
+from oauthlib.common import Request as oAuth_Request
 from oauthlib.oauth2 import Server
 from pyramid.httpexceptions import HTTPBadRequest
 from pyramid.httpexceptions import HTTPFound
@@ -20,6 +23,7 @@ from pyramid.httpexceptions import HTTPSeeOther
 
 # local
 from .validator import OAuth2RequestValidator
+from .validator import OAuth2RequestValidator_Hooks
 from ..utils import create_response
 from ..utils import extract_params
 from ..utils import TYPES_RESPONSE
@@ -39,27 +43,27 @@ log = logging.getLogger(__name__)
 
 class OAuth2Provider(object):
     # these fields modeled after oauthlib.oauth2.rfc6749.endpoints.base.BaseEndpoint
-    _available = True
-    _catch_errors = True
+    _available: bool = True
+    _catch_errors: bool = True
 
     # stash for OAuth1RequestValidator
-    _validator_api_hooks = None
-    _validator_class = None
-    _validator = None
+    _validator_api_hooks: OAuth2RequestValidator_Hooks
+    _validator_class: Type[OAuth2RequestValidator]
+    _validator: OAuth2RequestValidator
 
     pyramid_request: "Pyramid_Request"
     server: Any  # Server instance
     # TODO: better typing for `server`
 
     # misc
-    error_uri = "/error"
-    confirm_authorization_request__post_only = False
+    error_uri: str = "/error"
+    confirm_authorization_request__post_only: bool = False
 
     def __init__(
         self,
         pyramid_request: "Pyramid_Request",
-        validator_api_hooks=None,
-        validator_class=None,
+        validator_api_hooks: OAuth2RequestValidator_Hooks,
+        validator_class: Type[OAuth2RequestValidator],
         server_class=Server,
         error_uri: Optional[str] = None,
     ):
@@ -82,7 +86,8 @@ class OAuth2Provider(object):
             self.error_uri = error_uri
 
         self._validator = validator = self._validator_class(
-            pyramid_request, validator_api_hooks=self._validator_api_hooks
+            pyramid_request,
+            validator_api_hooks=self._validator_api_hooks,
         )
         self.server = server_class(
             validator,
@@ -267,7 +272,7 @@ class OAuth2Provider(object):
             log.critical(exc)
             return HTTPSeeOther(add_params_to_uri(self.error_uri, {"error": str(exc)}))
 
-    def verify_request(self, scopes: List[str]) -> bool:
+    def verify_request(self, scopes: List[str]) -> Tuple[bool, oAuth_Request]:
         """
         used to validate
         """

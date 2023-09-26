@@ -1,3 +1,9 @@
+0.4.0
+    * Additional typing
+    * `request.access_token` is now a private `request.access_token_object`,
+      which is this package (and integrators') datastore backed object to
+      more properly isolate it from the various oAuthlib token instances.
+
 0.3.0
     * drop py2.7,py35
     * initial mypy support

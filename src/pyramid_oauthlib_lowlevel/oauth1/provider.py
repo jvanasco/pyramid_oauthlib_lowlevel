@@ -3,7 +3,9 @@ import logging
 from typing import Any
 from typing import Dict
 from typing import Iterable
+from typing import Optional
 from typing import Tuple
+from typing import Type
 from typing import TYPE_CHECKING
 
 # pypi
@@ -17,9 +19,10 @@ from oauthlib.oauth1 import WebApplicationServer as Server
 from .errors import MiscellaneousOAuth1Error
 from .utils import catch_endpoint_failure
 from .validator import OAuth1RequestValidator
+from .validator import OAuth1RequestValidator_Hooks
 from .. import utils
 from ..utils import TYPE_EXTRACTED_PARAMS
-from ..utils import TYPES_SESSION_OPTIONAL
+from ..utils import TYPES_SESSION
 
 if TYPE_CHECKING:
     from oauthlib.common import Request as oAuth_Request
@@ -38,9 +41,9 @@ class OAuth1Provider(object):
     _catch_errors: bool = True
 
     # stash for OAuth1RequestValidator
-    _validator_api_hooks = None
-    _validator_class = None
-    _validator = None
+    _validator_api_hooks: OAuth1RequestValidator_Hooks
+    _validator_class: Type[OAuth1RequestValidator]
+    _validator: OAuth1RequestValidator
 
     pyramid_request: "Pyramid_Request"
     server: Any  # Server instance
@@ -49,8 +52,8 @@ class OAuth1Provider(object):
     def __init__(
         self,
         pyramid_request: "Pyramid_Request",
-        validator_api_hooks=None,
-        validator_class=None,
+        validator_api_hooks: OAuth1RequestValidator_Hooks,
+        validator_class: Type[OAuth1RequestValidator],
     ):
         """Builds a new Provider
 
@@ -61,10 +64,10 @@ class OAuth1Provider(object):
         """
         self.pyramid_request = pyramid_request
         self._validator_api_hooks = validator_api_hooks
-        self._validator_class = validator_class or OAuth1RequestValidator
-
+        self._validator_class = validator_class
         self._validator = self._validator_class(
-            pyramid_request, validator_api_hooks=self._validator_api_hooks
+            pyramid_request,
+            validator_api_hooks=self._validator_api_hooks,
         )
         self.server = Server(self._validator)
 
@@ -95,7 +98,7 @@ class OAuth1Provider(object):
     @catch_endpoint_failure
     def endpoint__request_token(
         self,
-        dbSessionCommit: TYPES_SESSION_OPTIONAL = None,
+        dbSessionCommit: Optional[TYPES_SESSION] = None,
     ) -> "Response":
         """
         actual endpoint logic
@@ -114,7 +117,7 @@ class OAuth1Provider(object):
     @catch_endpoint_failure
     def endpoint__access_token(
         self,
-        dbSessionCommit: TYPES_SESSION_OPTIONAL = None,
+        dbSessionCommit: Optional[TYPES_SESSION] = None,
         update_access_token=None,
     ) -> "Response":
         """
@@ -164,7 +167,7 @@ class OAuth1Provider(object):
     def endpoint__authorize__authorize(
         self,
         oauth1_data: Dict,
-        dbSessionCommit: TYPES_SESSION_OPTIONAL = None,
+        dbSessionCommit: Optional[TYPES_SESSION] = None,
     ) -> "Response":
         """
         authorize the app

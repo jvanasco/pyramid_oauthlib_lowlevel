@@ -1,8 +1,17 @@
 # stdlib
 import datetime
+from typing import Dict
+from typing import Optional
+from typing import TYPE_CHECKING
 
 # pypi
+import webtest
 import webtest.app
+
+
+if TYPE_CHECKING:
+    from pyramid_sqlassist.interface import _TYPES_SESSION
+
 
 # ==============================================================================
 
@@ -21,28 +30,28 @@ class FakeRequest(object):
     current version
     """
 
-    _method = None
-    _post = None
-    dbSession = None
-    datetime = None
-    active_useraccount_id = None
+    _method: Optional[str] = None
+    _post: Optional[Dict] = None
+    dbSession: _TYPES_SESSION = None
+    datetime: Optional[datetime.datetime] = None
+    active_useraccount_id: Optional[int] = None
 
     def __init__(self):
         self.datetime = datetime.datetime.utcnow()
         self.registry = FakeRegistry()
         self.headers = []
 
-    def current_route_url(self, uri=None):
+    def current_route_url(self, uri: Optional[str] = None) -> str:
         if uri is not None:
             self._current_route_url = uri
         return self._current_route_url
 
     @property
-    def method(self):
+    def method(self) -> str:
         return self._method or "GET"
 
     @property
-    def POST(self):
+    def POST(self) -> Dict:
         return self._post or {}
 
 
@@ -68,7 +77,7 @@ class IsolatedTestapp(object):
         ``cookiejar_local`` local cookiejar to context manager.
     """
 
-    testapp = None
+    testapp: webtest.TestApp
     cookiejar_original = None
     cookiejar_local = None
 

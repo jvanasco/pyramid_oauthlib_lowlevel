@@ -2,7 +2,6 @@
 from functools import wraps
 import logging
 import os
-from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import Tuple
@@ -23,9 +22,12 @@ from .errors import BackendError
 # ==============================================================================
 
 TYPES_RESPONSE = Union[Response, HTTPSeeOther]
+TYPES_SESSION = Union[Session, scoped_session]
 TYPES_SESSION_OPTIONAL = Union[Session, scoped_session, None]
 
 TYPE_EXTRACTED_PARAMS = Tuple[str, str, Dict, Dict]
+
+TYPE_OAUTHLIB_RESPONSE = Tuple[Dict, str, int]  # headers, body, status_code
 
 # ==============================================================================
 
@@ -40,12 +42,16 @@ PRINT_ERRORS = bool(int(os.getenv("PYRAMID_OAUTHLIB_LOWLEVEL__PRINT_ERRORS", 0))
 # ==============================================================================
 
 
-def native_(s, encoding="latin-1", errors="strict"):
+def native_(s: str, encoding="latin-1", errors="strict"):
     return s
 
 
-def oauth1_to_pyramid_Response(ret) -> Response:
+def oauth1_to_pyramid_Response(ret: TYPE_OAUTHLIB_RESPONSE) -> Response:
     """
+    An oauthlib reponse is:
+        headers, body, status_code
+
+
     originally this simply did:
 
         safe_headers = [(str(i[0]), str(i[1])) for i in ret[0].items()]

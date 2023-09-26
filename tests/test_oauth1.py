@@ -1,5 +1,6 @@
 # stdlib
 import re
+from typing import TYPE_CHECKING
 import unittest
 from urllib.parse import parse_qsl
 

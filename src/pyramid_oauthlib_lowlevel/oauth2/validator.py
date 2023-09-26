@@ -3,6 +3,7 @@ import datetime
 import logging
 import os
 from typing import Any
+from typing import Callable
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -16,9 +17,7 @@ from oauthlib.oauth2.rfc6749.errors import InvalidRequestError
 from oauthlib.oauth2.rfc6749.request_validator import RequestValidator
 from pyramid.authentication import extract_http_basic_credentials
 from pyramid.authentication import HTTPBasicCredentials
-
-if TYPE_CHECKING:
-    from pyramid.request import Request as Pyramid_Request
+from pyramid.request import Request as Pyramid_Request
 
 DEBUG_LOGIC = bool(int(os.getenv("PYRAMID_OAUTHLIB_LOWLEVEL__DEBUG_LOGIC", 0)))
 log = logging.getLogger(__name__)
@@ -34,13 +33,11 @@ class OAuth2RequestValidator_Hooks(object):
     This class encapsulates all the database access your application should require.
     """
 
-    pyramid_request: Optional[
-        "Pyramid_Request"
-    ] = None  # stash the pyramid request object
+    pyramid_request: Pyramid_Request  # stash the pyramid request object
 
     def __init__(
         self,
-        pyramid_request: "Pyramid_Request",
+        pyramid_request: Pyramid_Request,
     ):
         """
         :param request: oauthlib.common.Request
@@ -50,7 +47,7 @@ class OAuth2RequestValidator_Hooks(object):
 
     def ensure_request_client(
         self,
-        request: "oAuth_Request",
+        request: oAuth_Request,
         client_id: str,
     ):
         """
@@ -73,8 +70,8 @@ class OAuth2RequestValidator_Hooks(object):
     #
     def client_getter(
         self,
-        client_id: Optional[str] = None,
-    ):
+        client_id: str,
+    ) -> Optional[Any]:
         """
         Retreive a valid client
 
@@ -138,7 +135,7 @@ class OAuth2RequestValidator_Hooks(object):
         """
         raise NotImplementedError("Subclasses must implement this function.")
 
-    def grant_getter(self, client_id: str, code: str, *args, **kwargs):
+    def grant_getter(self, client_id: str, code: str, *args, **kwargs) -> Optional[Any]:
         """
         A method to load a grant.
 
@@ -188,7 +185,7 @@ class OAuth2RequestValidator_Hooks(object):
         access_token: Optional[str] = None,
         refresh_token: Optional[str] = None,
         debug: Optional[str] = None,
-    ) -> Any:
+    ) -> Optional[Any]:
         """
         This method accepts an `access_token` or `refresh_token` parameters,
         and it returns a token object with at least these information:
@@ -235,7 +232,7 @@ class OAuth2RequestValidator_Hooks(object):
         self,
         username: str,
         password: str,
-        client,
+        client: Any,
         request: oAuth_Request,
         *args,
         **kwargs,
@@ -271,22 +268,22 @@ class OAuth2RequestValidator(RequestValidator):
     Validator Integration
     """
 
-    request = None
-    _config = None
-    _config_prefix = "oauth1.provider."
+    pyramid_request: Pyramid_Request
+    _config: Dict
+    _config_prefix: str = "oauth1.provider."
     _api_hooks: OAuth2RequestValidator_Hooks
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    token_expires_in = None  # 3600
-    token_generator = None
-    refresh_token_generator = None
+    token_expires_in: Optional[int] = None  # 3600
+    token_generator: Optional[Callable] = None
+    refresh_token_generator: Optional[Callable] = None
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def __init__(
         self,
-        pyramid_request: "Pyramid_Request",
+        pyramid_request: Pyramid_Request,
         validator_api_hooks: OAuth2RequestValidator_Hooks,
     ):
         """
@@ -398,8 +395,11 @@ class OAuth2RequestValidator(RequestValidator):
         .. _`HTTP Basic Authentication Scheme`: http://tools.ietf.org/html/rfc1945#section-11.1
         """
         client_id, client_secret = self._get_client_creds_from_request(request)
+        if not client_id:
+            log.debug("Authenticate client failed, client_id not found.")
         log.debug("Authenticate client %r", client_id)
-
+        if TYPE_CHECKING:
+            assert client_id is not None
         client = self._api_hooks.client_getter(client_id)
         if not client:
             log.debug("Authenticate client failed, client not found.")
@@ -498,6 +498,8 @@ class OAuth2RequestValidator(RequestValidator):
             - Implicit Grant
         """
         request.client = request.client or self._api_hooks.client_getter(client_id)
+        if request.client is None:
+            raise ValueError("Missing `request.client`")
         redirect_uri = request.client.default_redirect_uri
         log.debug("Found default redirect uri %r", redirect_uri)
         return redirect_uri
@@ -519,6 +521,8 @@ class OAuth2RequestValidator(RequestValidator):
             - Client Credentials grant
         """
         request.client = request.client or self._api_hooks.client_getter(client_id)
+        if request.client is None:
+            raise ValueError("Missing `request.client`")
         scopes = request.client.default_scopes
         log.debug("Found default scopes %r", scopes)
         return scopes
@@ -542,6 +546,8 @@ class OAuth2RequestValidator(RequestValidator):
         """
         log.debug("Obtaining scope of refreshed token.")
         tok = self._api_hooks.token_getter(refresh_token=refresh_token)
+        if not tok:
+            raise ValueError("Could not load refresh_token.")
         return tok.scopes
 
     def is_within_original_scope(
@@ -671,7 +677,7 @@ class OAuth2RequestValidator(RequestValidator):
         self._api_hooks.grant_setter(client_id, code, request, *args, **kwargs)
         return None
 
-    def save_token(self, token: Dict, request: oAuth_Request, *args, **kwargs) -> str:
+    def save_token(self, token: Dict, request: oAuth_Request, *args, **kwargs) -> None:
         """
         Persist the token with a token type specific method.
 
@@ -680,7 +686,7 @@ class OAuth2RequestValidator(RequestValidator):
         :param token: A (Bearer) token dict
         :param request: The HTTP Request (oauthlib.common.Request)
         """
-        return self.save_bearer_token(token, request, *args, **kwargs)
+        self.save_bearer_token(token, request, *args, **kwargs)
 
     def save_bearer_token(
         self, token: Dict, request: oAuth_Request, *args, **kwargs
@@ -780,7 +786,7 @@ class OAuth2RequestValidator(RequestValidator):
             log.debug(msg)
             return False
 
-        request.access_token = tok
+        request.access_token_object = tok  # type: ignore [attr-defined]
         request.user = tok.user
         request.scopes = scopes
 
@@ -939,12 +945,14 @@ class OAuth2RequestValidator(RequestValidator):
         function on grant for a customized validation.
         """
         request.client = request.client or self._api_hooks.client_getter(client_id)
-        client = request.client
+        if not request.client:
+            raise ValueError("Could not load `client`")
         if (
-            hasattr(client, "validate_redirect_uri") and client.validate_redirect_uri
+            hasattr(request.client, "validate_redirect_uri")
+            and request.client.validate_redirect_uri
         ):  # ensure it is defined
-            return client.validate_redirect_uri(redirect_uri)
-        return redirect_uri in client.redirect_uris
+            return request.client.validate_redirect_uri(redirect_uri)
+        return redirect_uri in request.client.redirect_uris
 
     def validate_refresh_token(
         self, refresh_token: str, client: Any, request: oAuth_Request, *args, **kwargs

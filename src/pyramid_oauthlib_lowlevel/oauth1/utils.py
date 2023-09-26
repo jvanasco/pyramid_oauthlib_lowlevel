@@ -23,7 +23,7 @@ log = logging.getLogger(__name__)
 
 # this is made available for ease of debugging unittests
 # `export PYRAMID_OAUTHLIB_LOWLEVEL__PRINT_ERRORS=1`
-PRINT_ERRORS = bool(int(os.getenv("PYRAMID_OAUTHLIB_LOWLEVEL__PRINT_ERRORS", 0)))
+PRINT_ERRORS = bool(int(os.getenv("PYRAMID_OAUTHLIB_LOWLEVEL__PRINT_ERRORS", "0")))
 
 
 # ==============================================================================
