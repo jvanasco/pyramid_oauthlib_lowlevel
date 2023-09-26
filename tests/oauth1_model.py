@@ -83,7 +83,7 @@ class DeveloperApplication(Base):
         sa.Boolean, nullable=True, default=True
     )
     useraccount_id__owner: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("useraccount.id"), nullable=False
+        sa.Integer, sa.ForeignKey("useraccount.id"), nullable=True
     )
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
         sa.DateTime, nullable=False
@@ -189,7 +189,7 @@ class Developer_oAuth1Server_TokenRequest(Base):
         sa.Integer, sa.ForeignKey("developer_application.id"), nullable=False
     )
     useraccount_id: Mapped[int] = mapped_column(
-        sa.Integer, sa.ForeignKey("useraccount.id"), nullable=False
+        sa.Integer, sa.ForeignKey("useraccount.id"), nullable=True
     )
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
         sa.DateTime, nullable=False
@@ -376,10 +376,10 @@ class Developer_oAuth1Client_TokenAccess(Base):
 
     __tablename__ = "developer__oauth1_client__token_access"
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
-    developer_application_id = mapped_column(
+    developer_application_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("developer_application.id"), nullable=False
     )
-    useraccount_id = mapped_column(
+    useraccount_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("useraccount.id"), nullable=False
     )
 

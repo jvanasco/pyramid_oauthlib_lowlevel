@@ -440,7 +440,7 @@ class ExampleApp_FlowRegister(Handler):
         newGrant = Developer_oAuth1Client_TokenAccess()
         newGrant.developer_application_id = app_data["id"]
         newGrant.useraccount_id = self.request.active_useraccount_id
-        newGrant.timestamp_created = self.request.datetime
+        newGrant.timestamp_created = self.request.timestamp
         newGrant.oauth_token = authorized["oauth_token"]
         newGrant.oauth_token_secret = authorized["oauth_token_secret"]
         newGrant._realms = (

@@ -32,12 +32,12 @@ class FakeRequest(object):
 
     _method: Optional[str] = None
     _post: Optional[Dict] = None
-    dbSession: _TYPES_SESSION = None
-    datetime: Optional[datetime.datetime] = None
+    dbSession: "_TYPES_SESSION" = None
+    timestamp: Optional[datetime.datetime] = None
     active_useraccount_id: Optional[int] = None
 
     def __init__(self):
-        self.datetime = datetime.datetime.utcnow()
+        self.timestamp = datetime.datetime.utcnow()
         self.registry = FakeRegistry()
         self.headers = []
 

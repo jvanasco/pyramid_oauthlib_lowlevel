@@ -463,7 +463,7 @@ class ExampleApp_User_AccountViews(Handler):
         newToken_db.access_token = newToken_dict["access_token"]
         newToken_db.refresh_token = newToken_dict["refresh_token"]
         newToken_db.scope = " ".join(newToken_dict["scope"])
-        newToken_db.timestamp_created = self.request.datetime
+        newToken_db.timestamp_created = self.request.timestamp
         newToken_db.timestamp_expires = (
             newToken_db.timestamp_created
             + datetime.timedelta(seconds=newToken_dict["expires_in"])
@@ -583,7 +583,7 @@ class ExampleApp_User_AccountViews(Handler):
         newToken_db.scope = " ".join(newToken_dict["scope"])
         newToken_db.grant_type = "refresh_token"
         newToken_db.original_grant_type = "authorization_code"
-        newToken_db.timestamp_created = self.request.datetime
+        newToken_db.timestamp_created = self.request.timestamp
         newToken_db.timestamp_expires = (
             newToken_db.timestamp_created
             + datetime.timedelta(seconds=newToken_dict["expires_in"])
@@ -669,7 +669,7 @@ class ExampleApp_User_AccountViews(Handler):
         token_result = apiClient.revoke_access_token(token=clientToken.access_token)
         assert token_result is True
 
-        clientToken.timestamp_revoked = self.request.datetime
+        clientToken.timestamp_revoked = self.request.timestamp
         clientToken.is_active = False
         self.request.dbSession.flush()
 
@@ -758,7 +758,7 @@ class ExampleApp_FlowRegister(Handler):
             clientToken.scope = " ".join(resp["scope"])
             clientToken.grant_type = "authorization_code"
             clientToken.original_grant_type = "authorization_code"
-            clientToken.timestamp_created = self.request.datetime
+            clientToken.timestamp_created = self.request.timestamp
             clientToken.timestamp_expires = (
                 clientToken.timestamp_created
                 + datetime.timedelta(seconds=resp["expires_in"])

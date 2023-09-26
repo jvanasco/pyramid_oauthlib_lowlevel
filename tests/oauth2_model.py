@@ -117,7 +117,7 @@ class DeveloperApplication(Base):
     is_active: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean, nullable=True, default=True
     )
-    useraccount_id__owner: Mapped[int] = mapped_column(
+    useraccount_id__owner: Mapped[Optional[int]] = mapped_column(
         sa.Integer, sa.ForeignKey("useraccount.id"), nullable=False
     )
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
@@ -220,7 +220,7 @@ class DeveloperApplication_Keyset(Base):
 
     __tablename__ = "developer_application_keyset"
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
-    developer_application_id = mapped_column(
+    developer_application_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("developer_application.id"), nullable=False
     )
     is_active: Mapped[Optional[bool]] = mapped_column(
@@ -258,10 +258,10 @@ class Developer_OAuth2Server_GrantToken(Base):
 
     __tablename__ = "developer__oauth2_server__grant_token"
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)  # numeric
-    useraccount_id = mapped_column(
-        sa.Integer, sa.ForeignKey("useraccount.id"), nullable=False
+    useraccount_id: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("useraccount.id"), nullable=True
     )
-    developer_application_id = mapped_column(
+    developer_application_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("developer_application.id"), nullable=False
     )
     code: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
@@ -344,10 +344,10 @@ class Developer_OAuth2Server_BearerToken(Base):
         sa.CheckConstraint("NOT(access_token IS NULL AND refresh_token IS NULL)"),
     )
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
-    useraccount_id = mapped_column(
+    useraccount_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("useraccount.id"), nullable=False
     )
-    developer_application_id = mapped_column(
+    developer_application_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("developer_application.id"), nullable=False
     )
     is_active: Mapped[Optional[bool]] = mapped_column(

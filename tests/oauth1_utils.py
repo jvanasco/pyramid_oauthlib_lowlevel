@@ -227,7 +227,7 @@ class CustomValidator_Hooks(OAuth1RequestValidator_Hooks):
         tokenObject.oauth_token = token["oauth_token"]
         tokenObject.oauth_token_secret = token["oauth_token_secret"]
         tokenObject._realms = token["oauth_authorized_realms"]
-        tokenObject.timestamp_created = self.pyramid_request.datetime
+        tokenObject.timestamp_created = self.pyramid_request.timestamp
         tokenObject.developer_application_id = request.client.id
         tokenObject.useraccount_id = verifierObject.useraccount_id
         tokenObject.oauth_version = "1"
@@ -281,9 +281,9 @@ class CustomValidator_Hooks(OAuth1RequestValidator_Hooks):
         """
         tokenObject = Developer_oAuth1Server_TokenRequest()
         tokenObject.developer_application_id = request.client.id
-        tokenObject.timestamp_created = self.pyramid_request.datetime
+        tokenObject.timestamp_created = self.pyramid_request.timestamp
         tokenObject.timestamp_expires = (
-            self.pyramid_request.datetime + datetime.timedelta(seconds=100)
+            self.pyramid_request.timestamp + datetime.timedelta(seconds=100)
         )
         tokenObject._realms = " ".join(request.realms)
         tokenObject.redirect_uri = request.redirect_uri

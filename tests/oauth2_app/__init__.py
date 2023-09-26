@@ -138,7 +138,7 @@ def main(global_config, **settings):
 
     # request methods!
     config.add_request_method(
-        lambda request: datetime.datetime.utcnow(), "datetime", reify=True
+        lambda request: datetime.datetime.utcnow(), "timestamp", reify=True
     )
     config.add_request_method(
         lambda request: request.session["active_useraccount_id"]

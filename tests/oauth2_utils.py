@@ -158,7 +158,7 @@ class CustomValidator_Hooks(OAuth2RequestValidator_Hooks):
         grantObject.scope = (
             request.scope
         )  # `Developer_OAuth2Server_GrantToken.scope` is TEXT field as is `request.scope`; `.scopes` are lists
-        grantObject.timestamp_created = self.pyramid_request.datetime
+        grantObject.timestamp_created = self.pyramid_request.timestamp
         grantObject.is_active = True
         grantObject.redirect_uri = request.redirect_uri
         grantObject.code = code.get("code", "")  # this is a dict with code|state
@@ -297,14 +297,14 @@ class CustomValidator_Hooks(OAuth2RequestValidator_Hooks):
                 self.token_revoke(_token)
             self.pyramid_request.dbSession.flush()
 
-        timestamp_expiry = self.pyramid_request.datetime + datetime.timedelta(
+        timestamp_expiry = self.pyramid_request.timestamp + datetime.timedelta(
             seconds=token.get("expires_in", 0)
         )
 
         bearerToken = Developer_OAuth2Server_BearerToken()
         bearerToken.developer_application_id = request.client.id
         bearerToken.useraccount_id = user_id
-        bearerToken.timestamp_created = self.pyramid_request.datetime
+        bearerToken.timestamp_created = self.pyramid_request.timestamp
         bearerToken.is_active = True
         bearerToken.access_token = token["access_token"]
         bearerToken.refresh_token = token.get("refresh_token", None)
@@ -401,7 +401,7 @@ class CustomValidator_Hooks(OAuth2RequestValidator_Hooks):
             print("  }  tokenObject.access_token", tokenObject.access_token)
             print("  }  tokenObject.refresh_token", tokenObject.refresh_token)
         tokenObject.is_active = False
-        tokenObject.timestamp_revoked = self.pyramid_request.datetime
+        tokenObject.timestamp_revoked = self.pyramid_request.timestamp
         self.pyramid_request.dbSession.flush()
 
 
