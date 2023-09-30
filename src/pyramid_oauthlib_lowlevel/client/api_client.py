@@ -5,12 +5,14 @@ import typing
 from typing import Any
 from typing import Dict
 from typing import Optional
+from typing import TYPE_CHECKING
 from urllib.parse import parse_qsl
 from urllib.parse import urlencode
 
 # pypi
 import requests
 from requests.auth import HTTPBasicAuth
+from requests.models import PreparedRequest
 from requests_oauthlib import OAuth1
 from requests_oauthlib import OAuth2
 
@@ -204,6 +206,9 @@ class ApiClient(object):
         if force_login:
             raise ValueError("`force_login` is not implemented yet")
 
+        if TYPE_CHECKING:
+            assert isinstance(self.client.auth, PreparedRequest)
+
         # we toggle this in, then fix
         _callback_uri_old = self.client.auth.client.callback_uri
         if callback_url:
@@ -277,6 +282,9 @@ class ApiClient(object):
             for k, v in extra_args.items():
                 if k not in request_args:
                     request_args[k] = v
+
+        if TYPE_CHECKING:
+            assert isinstance(self.client.auth, PreparedRequest)
 
         self.client.auth.client.verifier = oauth_verifier
         response = self.client.get(
