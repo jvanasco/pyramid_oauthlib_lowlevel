@@ -4,7 +4,6 @@ import os
 from typing import Any
 from typing import Callable
 from typing import Dict
-from typing import Literal
 from typing import Optional
 from typing import TYPE_CHECKING
 
@@ -13,6 +12,7 @@ from oauthlib.common import Request as oAuth_Request
 from oauthlib.oauth2 import WebApplicationServer
 import sqlalchemy
 import sqlalchemy.orm
+from typing_extensions import Literal
 
 # local
 from pyramid_oauthlib_lowlevel.client.api_client import ApiClient

@@ -1,4 +1,5 @@
 0.4.0
+    * drop Python3.6, as SqlAlchemy2.0 is required for tests
     * Additional typing
     * `request.access_token` is now a private `request.access_token_object`,
       which is this package (and integrators') datastore backed object to
@@ -7,6 +8,7 @@
       * oauth1.validator.OAuth1RequestValidator_Hooks.create_access_token_existing
       * oauth1.validator.OAuth1RequestValidator.create_access_token_existing
       * tests.oauth1_utils.CustomValidator_Hooks.create_access_token_existing
+    * require typing_extensions as `Literal` is not in Python3.7
     * Changed:
         OAuth2RequestValidator_Hooks.bearer_token_setter
             `token` -> `token_dict`

@@ -3,7 +3,6 @@ import datetime
 import time
 from typing import Dict
 from typing import List
-from typing import Literal
 from typing import Optional
 from typing import Tuple
 from typing import TYPE_CHECKING
@@ -11,6 +10,7 @@ from typing import TYPE_CHECKING
 # pypi
 import sqlalchemy
 import sqlalchemy.orm
+from typing_extensions import Literal
 
 # local
 from pyramid_oauthlib_lowlevel.client.api_client import ApiClient
