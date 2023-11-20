@@ -1,7 +1,6 @@
 # stdlib
 import json
 import logging
-import typing
 from typing import Any
 from typing import Dict
 from typing import Optional
@@ -360,7 +359,6 @@ class ApiClient(object):
             # we know this is utf-8 because of the oauth spec
             # so we force utf-8 here off the .content
             content_str = response.content.decode("utf-8")
-            typing.cast(str, content_str)
             try:
                 content_dict = content_str.json()  # type: ignore[attr-defined]
             except AttributeError:

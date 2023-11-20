@@ -8,7 +8,6 @@
       * oauth1.validator.OAuth1RequestValidator.create_access_token_existing
       * tests.oauth1_utils.CustomValidator_Hooks.create_access_token_existing
     * Changed:
-    
         OAuth2RequestValidator_Hooks.bearer_token_setter
             `token` -> `token_dict`
 
