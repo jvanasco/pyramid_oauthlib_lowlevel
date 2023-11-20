@@ -2,9 +2,11 @@
 from functools import wraps
 import logging
 import os
+from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import Tuple
+from typing import TypeVar
 from typing import Union
 
 # from typing import TYPE_CHECKING
@@ -28,6 +30,10 @@ TYPES_SESSION_OPTIONAL = Union[Session, scoped_session, None]
 TYPE_EXTRACTED_PARAMS = Tuple[str, str, Dict, Dict]
 
 TYPE_OAUTHLIB_RESPONSE = Tuple[Dict, str, int]  # headers, body, status_code
+
+# used to keep the signature due to @wraps
+# except this doesn't work well
+# T = TypeVar("T", bound=Callable[..., Any])
 
 # ==============================================================================
 

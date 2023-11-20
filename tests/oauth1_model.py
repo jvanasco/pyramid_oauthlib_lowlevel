@@ -2,13 +2,16 @@
 
 # stdlib
 import datetime
+from typing import List
 from typing import Optional
 
 # pypi
 import sqlalchemy as sa
+from sqlalchemy import Engine
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
+from sqlalchemy.orm import Session
 
 # ==============================================================================
 
@@ -108,27 +111,27 @@ class DeveloperApplication(Base):
     )
 
     @property
-    def client_key(self):
+    def client_key(self) -> str:
         """compatibility with `OAuth1Server_Client`"""
         return self.app_keyset_active.consumer_key
 
     @property
-    def client_secret(self):
+    def client_secret(self) -> str:
         """compatibility with `OAuth1Server_Client`"""
         return self.app_keyset_active.consumer_secret
 
     @property
-    def redirect_uris(self):
+    def redirect_uris(self) -> List[Optional[str]]:
         """compatibility with `OAuth1Server_Client`"""
         return [self.callback_url]
 
     @property
-    def default_redirect_uri(self):
+    def default_redirect_uri(self) -> Optional[str]:
         """compatibility with `OAuth1Server_Client`"""
         return self.callback_url
 
     @property
-    def default_realms(self):
+    def default_realms(self) -> List[str]:
         """compatibility with `OAuth1Server_Client`
         oauthlib wants to READONLY an array of realms, the db wants a string,"""
         if self.app_scope:
@@ -231,27 +234,27 @@ class Developer_oAuth1Server_TokenRequest(Base):
     )
 
     @property
-    def realms(self):
+    def realms(self) -> List[str]:
         """oauthlib wants to READONLY an array of realms, the db wants a string"""
         return self._realms.split(" ")
 
     @property
-    def client_key(self):
+    def client_key(self) -> str:
         """oauthlib wants a `client_key` available on the token"""
         return self.client.app_keyset_active.consumer_key
 
     @property
-    def token(self):
+    def token(self) -> str:
         """oauthlib wants a `token`, but we want to store 'oauth_token`"""
         return self.oauth_token
 
     @property
-    def secret(self):
+    def secret(self) -> str:
         """oauthlib wants a `secret`, but we want to store 'oauth_token_secret`"""
         return self.oauth_token_secret
 
     @property
-    def verifier(self):
+    def verifier(self) -> Optional[str]:
         """oauthlib wants a `verifier`, but we want to store 'oauth_verifier`"""
         return self.oauth_verifier
 
@@ -289,12 +292,12 @@ class Developer_oAuth1Server_Nonce(Base):
     )
 
     @property
-    def timestamp(self):
+    def timestamp(self) -> datetime.datetime:
         """oauthlib wants `timestamp`"""
         return self.timestamp_created
 
     @property
-    def client_key(self):
+    def client_key(self) -> str:
         """
         oauthlib wants a `client_key` available on the token
         this could be mapped via a sqlalchemy AssociationProxy
@@ -354,17 +357,17 @@ class Developer_oAuth1Server_TokenAccess(Base):
     )
 
     @property
-    def token(self):
+    def token(self) -> str:
         """oauthlib wants a `token`, but we want to store 'oauth_token`"""
         return self.oauth_token
 
     @property
-    def secret(self):
+    def secret(self) -> str:
         """oauthlib wants a `secret`, but we want to store 'oauth_token_secret`"""
         return self.oauth_token_secret
 
     @property
-    def realms(self):
+    def realms(self) -> List[str]:
         """oauthlib wants a list"""
         return self._realms.split(" ")
 
@@ -401,12 +404,12 @@ class Developer_oAuth1Client_TokenAccess(Base):
     )
 
     @property
-    def realms(self):
+    def realms(self) -> List[str]:
         """oauthlib wants to READONLY an array of realms, the db wants a string"""
         return self._realms.split(" ")
 
 
-def initialize(engine, session):
+def initialize(engine: "Engine", session: "Session"):
     Base.metadata.create_all(engine)
 
     # insert users

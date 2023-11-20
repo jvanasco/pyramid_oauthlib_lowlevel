@@ -149,6 +149,7 @@ class OAuth1Provider(object):
                 uri, http_method=http_method, body=body, headers=headers
             )
         except Exception as exc:
+            raise
             error = MiscellaneousOAuth1Error(
                 description="Error extracting oAuth1 params", wrapped_exception=exc
             )

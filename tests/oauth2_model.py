@@ -28,13 +28,19 @@ The following will refer to the model elements as `Object(tablename)`
 """
 # stdlib
 import datetime
+from typing import List
 from typing import Optional
+from typing import TYPE_CHECKING
 
 # pypi
 import sqlalchemy as sa
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
+
+if TYPE_CHECKING:
+    from sqlalchemy import Engine
+    from sqlalchemy.orm import Session
 
 # ==============================================================================
 
@@ -159,7 +165,7 @@ class DeveloperApplication(Base):
     )
 
     @property
-    def default_scopes(self):
+    def default_scopes(self) -> List:
         """
         store a STRING but must iterate a LIST on the interface
         """
@@ -170,7 +176,7 @@ class DeveloperApplication(Base):
     # allowed_response_types = ('client', 'token')
 
     @property
-    def redirect_uris(self):
+    def redirect_uris(self) -> List:
         """
         store a STRING but must iterate a LIST on the interface
         """
@@ -179,14 +185,14 @@ class DeveloperApplication(Base):
         return []
 
     @property
-    def default_redirect_uri(self):
+    def default_redirect_uri(self) -> Optional[str]:
         """
         store a STRING LIST but must provide a single string of the first item on the interface.
         """
         return self.redirect_uris[0] if self.redirect_uris else None
 
     @property
-    def client_type(self):
+    def client_type(self) -> str:
         """
         A string represents if this client is confidential or not.
         This is particular to the flask-oauthlib implementation which this library was ported from.
@@ -196,7 +202,7 @@ class DeveloperApplication(Base):
         return "public"
 
     @property
-    def client_id(self):
+    def client_id(self) -> str:
         """
         This is the ``Client.client_id``, which is implemented via ``DeveloperApplication_Keyset.client_id``
         This is the "public" component of the consumer keyset.
@@ -204,7 +210,7 @@ class DeveloperApplication(Base):
         return self.app_keyset_active.client_id
 
     @property
-    def client_secret(self):
+    def client_secret(self) -> str:
         """
         This is the ``Client.client_secret``, which is implemented via ``DeveloperApplication_Keyset.client_secret``
         This is the "private" component of the consumer keyset.
@@ -291,28 +297,28 @@ class Developer_OAuth2Server_GrantToken(Base):
     )
 
     @property
-    def client_id(self):
+    def client_id(self) -> str:
         """
         This is the ``Client.client_id``, which is implemented via ``DeveloperApplication_Keyset.client_id``
         """
         return self.developer_application.app_keyset_active.client_id
 
     @property
-    def client(self):
+    def client(self) -> str:
         """
         This is the ``Client``, which is implemented via ``DeveloperApplication_Keyset``
         """
         return self.developer_application
 
     @property
-    def scopes(self):
+    def scopes(self) -> List:
         """
         store a STRING but must iterate a LIST on the interface
         """
         return self.scope.split(" ") if self.scope else []
 
     @property
-    def expires(self):
+    def expires(self) -> datetime.datetime:
         """
         The interface expects `expires` but we prefer a `timestamp` prefix on datetime columns.
         """
@@ -397,18 +403,18 @@ class Developer_OAuth2Server_BearerToken(Base):
     )
 
     @property
-    def client_id(self):
+    def client_id(self) -> str:
         """
         This is the ``Client.client_id``, which we implement via ``DeveloperApplication_Keyset.client_id``
         """
         return self.developer_application.app_keyset_active.client_id
 
     @property
-    def scopes(self):
+    def scopes(self) -> List:
         return self.scope.split(" ") if self.scope else []
 
     @property
-    def expires(self):
+    def expires(self) -> datetime.datetime:
         """compliance with model"""
         return self.timestamp_expires
 
@@ -463,16 +469,16 @@ class Developer_OAuth2Client_BearerToken(Base):
     )
 
     @property
-    def scopes(self):
+    def scopes(self) -> List:
         return self.scope.split(" ") if self.scope else []
 
     @property
-    def expires(self):
+    def expires(self) -> datetime.datetime:
         """compliance with model"""
         return self.timestamp_expires
 
 
-def initialize(engine, session):
+def initialize(engine: "Engine", session: "Session"):
     Base.metadata.create_all(engine)
 
     user1 = Useraccount(id=USERID_ACTIVE__APPLICATION)

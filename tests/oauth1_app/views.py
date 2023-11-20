@@ -4,6 +4,7 @@ fake app for tests
 # stdlib
 import logging
 import os
+from typing import TYPE_CHECKING
 
 # pypi
 from formencode import Schema as form_Schema
@@ -28,6 +29,9 @@ from ..oauth1_model import USERID_ACTIVE__AUTHORITY
 from ..oauth1_utils import CustomApiClient
 from ..oauth1_utils import get_ApiExampleAppData
 from ..oauth1_utils import new_oauth1Provider
+
+if TYPE_CHECKING:
+    from pyramid.request import Request as PyramidRequest
 
 # ==============================================================================
 
@@ -60,7 +64,9 @@ class Form_OAuthToken(form_Schema):
 
 
 class Handler(object):
-    def __init__(self, request):
+    request: "PyramidRequest"
+
+    def __init__(self, request: "PyramidRequest"):
         self.request = request
 
 

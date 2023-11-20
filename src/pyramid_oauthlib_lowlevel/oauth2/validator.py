@@ -156,9 +156,11 @@ class OAuth2RequestValidator_Hooks(object):
     #
     # bearer_token setter
     #
-    def bearer_token_setter(self, token: Dict, request: oAuth_Request, *args, **kwargs):
+    def bearer_token_setter(
+        self, token_dict: Dict, request: oAuth_Request, *args, **kwargs
+    ):
         """
-        :param token: A Bearer token dict
+        :param token_dict: A Bearer token dict
         :param request: The HTTP Request (oauthlib.common.Request)
 
 
@@ -182,30 +184,30 @@ class OAuth2RequestValidator_Hooks(object):
 
     def token_getter(
         self,
-        access_token: Optional[str] = None,
-        refresh_token: Optional[str] = None,
+        access_token_str: Optional[str] = None,
+        refresh_token_str: Optional[str] = None,
         debug: Optional[str] = None,
     ) -> Optional[Any]:
         """
         This method accepts an `access_token` or `refresh_token` parameters,
         and it returns a token object with at least these information:
 
-        - access_token: A string token
-        - refresh_token: A string token
+        - access_token_str: A string token
+        - refresh_token_str: A string token
         - client_id: ID of the client
         - scopes: A list of scopes
         - expires: A `datetime.datetime` object
         - user: The user object
 
-        :param access_token: Unicode access token
-        :param refresh_token: Unicode refresh token
+        :param access_token_str: Unicode access token
+        :param refresh_token_str: Unicode refresh token
         :param debug: optional string for debugging
         """
         raise NotImplementedError("Subclasses must implement this function.")
 
     def token_revoke(
         self,
-        tokenObject,
+        tokenObject: Any,
         debug: Optional[str] = None,
     ):
         """
@@ -544,11 +546,12 @@ class OAuth2RequestValidator(RequestValidator):
         Method is used by:
             - Refresh token grant
         """
+        # TODO: `refresh_token` -> `refresh_token_str`
         log.debug("Obtaining scope of refreshed token.")
-        tok = self._api_hooks.token_getter(refresh_token=refresh_token)
-        if not tok:
+        tokenObject = self._api_hooks.token_getter(refresh_token_str=refresh_token)
+        if not tokenObject:
             raise ValueError("Could not load refresh_token.")
-        return tok.scopes
+        return tokenObject.scopes
 
     def is_within_original_scope(
         self,
@@ -603,35 +606,42 @@ class OAuth2RequestValidator(RequestValidator):
             self._api_hooks.grant_invalidate(grantObject)
 
     def revoke_token(
-        self, token: str, token_type_hint: str, request: oAuth_Request, *args, **kwargs
+        self,
+        token: str,
+        token_type_hint: str,
+        request: oAuth_Request,
+        *args,
+        **kwargs,
     ) -> None:
         """
         Revoke an access or refresh token.
 
-        :param token: The token string.
+        :param token_str The token string.
         :param token_type_hint: access_token or refresh_token.
         :param request: The HTTP Request (oauthlib.common.Request)
 
         Method is used by:
             - Revocation Endpoint
         """
+        # TODO: `token` -> `token_str`
         if DEBUG_LOGIC:
             print(">> OAuth2RequestValidator.revoke_token")
             print("  >>  .token", token)
             print("  >>  .token_type_hint", token_type_hint)
             print("  >>  .request", request, request.__dict__)
         if token_type_hint:
+            _k = "%s_str" % token_type_hint
             tokenObject = self._api_hooks.token_getter(
-                **{token_type_hint: token}, debug="revoke_token"
+                **{_k: token}, debug="revoke_token"
             )
         else:
             # let's only do access here
             tokenObject = self._api_hooks.token_getter(
-                access_token=token, debug="revoke_token"
+                access_token_str=token, debug="revoke_token"
             )
             # if not tokenObject:
             #    tokenObject = self._api_hooks.token_getter(
-            #        refresh_token=token, debug="revoke_token"
+            #        refresh_token_str=token_str, debug="revoke_token"
             #    )
 
         if tokenObject:
@@ -743,14 +753,14 @@ class OAuth2RequestValidator(RequestValidator):
         return request.client.default_redirect_uri
 
     def validate_bearer_token(
-        self, token: str, scopes: List, request: oAuth_Request
+        self, token_str: str, scopes: List, request: oAuth_Request
     ) -> bool:
         """
         Validate access token.
 
         Detailed docs in `oauthlib.oauth2.rfc6749.request_validator.RequestValidator.validate_bearer_token`
 
-        :param token: A string of random characters.
+        :param token_str: A string of random characters.
         :param scopes: A list of scopes associated with the protected resource.
         :param request: The HTTP Request (oauthlib.common.Request)
         :rtype: True or False
@@ -767,33 +777,36 @@ class OAuth2RequestValidator(RequestValidator):
             - Resource Owner Password Credentials Grant
             - Client Credentials Grant
         """
-        log.debug("Validate bearer token %r", token)
-        tok = self._api_hooks.token_getter(access_token=token)
-        if not tok:
+        log.debug("Validate bearer token %r", token_str)
+        tokenObject = self._api_hooks.token_getter(access_token_str=token_str)
+        if not tokenObject:
             msg = "Bearer token not found."
             log.debug(msg)
             return False
 
         # validate expires
-        if tok.expires is not None and datetime.datetime.utcnow() > tok.expires:
+        if (
+            tokenObject.expires is not None
+            and datetime.datetime.utcnow() > tokenObject.expires
+        ):
             msg = "Bearer token is expired."
             log.debug(msg)
             return False
 
         # validate scopes
-        if scopes and not set(tok.scopes) & set(scopes):
+        if scopes and not set(tokenObject.scopes) & set(scopes):
             msg = "Bearer token scope not valid."
             log.debug(msg)
             return False
 
-        request.access_token_object = tok  # type: ignore [attr-defined]
-        request.user = tok.user
+        request.access_token_object = tokenObject  # type: ignore [attr-defined]
+        request.user = tokenObject.user
         request.scopes = scopes
 
-        if hasattr(tok, "client"):
-            request.client = tok.client
-        elif hasattr(tok, "client_id"):
-            request.client = self._api_hooks.client_getter(tok.client_id)
+        if hasattr(tokenObject, "client"):
+            request.client = tokenObject.client
+        elif hasattr(tokenObject, "client_id"):
+            request.client = self._api_hooks.client_getter(tokenObject.client_id)
         return True
 
     def validate_client_id(
@@ -955,7 +968,12 @@ class OAuth2RequestValidator(RequestValidator):
         return redirect_uri in request.client.redirect_uris
 
     def validate_refresh_token(
-        self, refresh_token: str, client: Any, request: oAuth_Request, *args, **kwargs
+        self,
+        refresh_token: str,
+        client: Any,
+        request: oAuth_Request,
+        *args,
+        **kwargs,
     ) -> bool:
         """
         Ensure the token is valid and belongs to the client
@@ -967,7 +985,7 @@ class OAuth2RequestValidator(RequestValidator):
         issuing refresh tokens, resource owner password credentials grant
         (also indirectly) and the refresh token grant.
 
-        :param refresh_token: Unicode refresh token.
+        :param refresh_token_str: Unicode refresh token.
         :param client: Client object set by you, see ``.authenticate_client``.
         :param request: OAuthlib request.
         :type request: oauthlib.common.Request
@@ -977,12 +995,11 @@ class OAuth2RequestValidator(RequestValidator):
             - Authorization Code Grant
             - Implicit Grant
         """
-        token = self._api_hooks.token_getter(refresh_token=refresh_token)
-
-        if token and token.client_id == client.client_id:
+        tokenObject = self._api_hooks.token_getter(refresh_token_str=refresh_token)
+        if tokenObject and tokenObject.client_id == client.client_id:
             # Make sure the request object contains user and client_id
-            request.client_id = token.client_id
-            request.user = token.user
+            request.client_id = tokenObject.client_id
+            request.user = tokenObject.user
             return True
         return False
 
