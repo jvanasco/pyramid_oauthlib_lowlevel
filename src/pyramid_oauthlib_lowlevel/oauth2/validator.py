@@ -3,6 +3,7 @@ import datetime
 import logging
 import os
 from typing import Any
+from typing import Callable
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -16,9 +17,7 @@ from oauthlib.oauth2.rfc6749.errors import InvalidRequestError
 from oauthlib.oauth2.rfc6749.request_validator import RequestValidator
 from pyramid.authentication import extract_http_basic_credentials
 from pyramid.authentication import HTTPBasicCredentials
-
-if TYPE_CHECKING:
-    from pyramid.request import Request as Pyramid_Request
+from pyramid.request import Request as Pyramid_Request
 
 DEBUG_LOGIC = bool(int(os.getenv("PYRAMID_OAUTHLIB_LOWLEVEL__DEBUG_LOGIC", 0)))
 log = logging.getLogger(__name__)
@@ -34,13 +33,11 @@ class OAuth2RequestValidator_Hooks(object):
     This class encapsulates all the database access your application should require.
     """
 
-    pyramid_request: Optional[
-        "Pyramid_Request"
-    ] = None  # stash the pyramid request object
+    pyramid_request: Pyramid_Request  # stash the pyramid request object
 
     def __init__(
         self,
-        pyramid_request: "Pyramid_Request",
+        pyramid_request: Pyramid_Request,
     ):
         """
         :param request: oauthlib.common.Request
@@ -50,7 +47,7 @@ class OAuth2RequestValidator_Hooks(object):
 
     def ensure_request_client(
         self,
-        request: "oAuth_Request",
+        request: oAuth_Request,
         client_id: str,
     ):
         """
@@ -73,8 +70,8 @@ class OAuth2RequestValidator_Hooks(object):
     #
     def client_getter(
         self,
-        client_id: Optional[str] = None,
-    ):
+        client_id: str,
+    ) -> Optional[Any]:
         """
         Retreive a valid client
 
@@ -138,7 +135,7 @@ class OAuth2RequestValidator_Hooks(object):
         """
         raise NotImplementedError("Subclasses must implement this function.")
 
-    def grant_getter(self, client_id: str, code: str, *args, **kwargs):
+    def grant_getter(self, client_id: str, code: str, *args, **kwargs) -> Optional[Any]:
         """
         A method to load a grant.
 
@@ -159,9 +156,11 @@ class OAuth2RequestValidator_Hooks(object):
     #
     # bearer_token setter
     #
-    def bearer_token_setter(self, token: Dict, request: oAuth_Request, *args, **kwargs):
+    def bearer_token_setter(
+        self, token_dict: Dict, request: oAuth_Request, *args, **kwargs
+    ):
         """
-        :param token: A Bearer token dict
+        :param token_dict: A Bearer token dict
         :param request: The HTTP Request (oauthlib.common.Request)
 
 
@@ -185,30 +184,30 @@ class OAuth2RequestValidator_Hooks(object):
 
     def token_getter(
         self,
-        access_token: Optional[str] = None,
-        refresh_token: Optional[str] = None,
+        access_token_str: Optional[str] = None,
+        refresh_token_str: Optional[str] = None,
         debug: Optional[str] = None,
-    ) -> Any:
+    ) -> Optional[Any]:
         """
         This method accepts an `access_token` or `refresh_token` parameters,
         and it returns a token object with at least these information:
 
-        - access_token: A string token
-        - refresh_token: A string token
+        - access_token_str: A string token
+        - refresh_token_str: A string token
         - client_id: ID of the client
         - scopes: A list of scopes
         - expires: A `datetime.datetime` object
         - user: The user object
 
-        :param access_token: Unicode access token
-        :param refresh_token: Unicode refresh token
+        :param access_token_str: Unicode access token
+        :param refresh_token_str: Unicode refresh token
         :param debug: optional string for debugging
         """
         raise NotImplementedError("Subclasses must implement this function.")
 
     def token_revoke(
         self,
-        tokenObject,
+        tokenObject: Any,
         debug: Optional[str] = None,
     ):
         """
@@ -235,7 +234,7 @@ class OAuth2RequestValidator_Hooks(object):
         self,
         username: str,
         password: str,
-        client,
+        client: Any,
         request: oAuth_Request,
         *args,
         **kwargs,
@@ -271,22 +270,22 @@ class OAuth2RequestValidator(RequestValidator):
     Validator Integration
     """
 
-    request = None
-    _config = None
-    _config_prefix = "oauth1.provider."
+    pyramid_request: Pyramid_Request
+    _config: Dict
+    _config_prefix: str = "oauth1.provider."
     _api_hooks: OAuth2RequestValidator_Hooks
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    token_expires_in = None  # 3600
-    token_generator = None
-    refresh_token_generator = None
+    token_expires_in: Optional[int] = None  # 3600
+    token_generator: Optional[Callable] = None
+    refresh_token_generator: Optional[Callable] = None
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     def __init__(
         self,
-        pyramid_request: "Pyramid_Request",
+        pyramid_request: Pyramid_Request,
         validator_api_hooks: OAuth2RequestValidator_Hooks,
     ):
         """
@@ -398,8 +397,11 @@ class OAuth2RequestValidator(RequestValidator):
         .. _`HTTP Basic Authentication Scheme`: http://tools.ietf.org/html/rfc1945#section-11.1
         """
         client_id, client_secret = self._get_client_creds_from_request(request)
+        if not client_id:
+            log.debug("Authenticate client failed, client_id not found.")
         log.debug("Authenticate client %r", client_id)
-
+        if TYPE_CHECKING:
+            assert client_id is not None
         client = self._api_hooks.client_getter(client_id)
         if not client:
             log.debug("Authenticate client failed, client not found.")
@@ -498,6 +500,8 @@ class OAuth2RequestValidator(RequestValidator):
             - Implicit Grant
         """
         request.client = request.client or self._api_hooks.client_getter(client_id)
+        if request.client is None:
+            raise ValueError("Missing `request.client`")
         redirect_uri = request.client.default_redirect_uri
         log.debug("Found default redirect uri %r", redirect_uri)
         return redirect_uri
@@ -519,6 +523,8 @@ class OAuth2RequestValidator(RequestValidator):
             - Client Credentials grant
         """
         request.client = request.client or self._api_hooks.client_getter(client_id)
+        if request.client is None:
+            raise ValueError("Missing `request.client`")
         scopes = request.client.default_scopes
         log.debug("Found default scopes %r", scopes)
         return scopes
@@ -540,9 +546,12 @@ class OAuth2RequestValidator(RequestValidator):
         Method is used by:
             - Refresh token grant
         """
+        # TODO: `refresh_token` -> `refresh_token_str`
         log.debug("Obtaining scope of refreshed token.")
-        tok = self._api_hooks.token_getter(refresh_token=refresh_token)
-        return tok.scopes
+        tokenObject = self._api_hooks.token_getter(refresh_token_str=refresh_token)
+        if not tokenObject:
+            raise ValueError("Could not load refresh_token.")
+        return tokenObject.scopes
 
     def is_within_original_scope(
         self,
@@ -597,35 +606,42 @@ class OAuth2RequestValidator(RequestValidator):
             self._api_hooks.grant_invalidate(grantObject)
 
     def revoke_token(
-        self, token: str, token_type_hint: str, request: oAuth_Request, *args, **kwargs
+        self,
+        token: str,
+        token_type_hint: str,
+        request: oAuth_Request,
+        *args,
+        **kwargs,
     ) -> None:
         """
         Revoke an access or refresh token.
 
-        :param token: The token string.
+        :param token_str The token string.
         :param token_type_hint: access_token or refresh_token.
         :param request: The HTTP Request (oauthlib.common.Request)
 
         Method is used by:
             - Revocation Endpoint
         """
+        # TODO: `token` -> `token_str`
         if DEBUG_LOGIC:
             print(">> OAuth2RequestValidator.revoke_token")
             print("  >>  .token", token)
             print("  >>  .token_type_hint", token_type_hint)
             print("  >>  .request", request, request.__dict__)
         if token_type_hint:
+            _k = "%s_str" % token_type_hint
             tokenObject = self._api_hooks.token_getter(
-                **{token_type_hint: token}, debug="revoke_token"
+                **{_k: token}, debug="revoke_token"
             )
         else:
             # let's only do access here
             tokenObject = self._api_hooks.token_getter(
-                access_token=token, debug="revoke_token"
+                access_token_str=token, debug="revoke_token"
             )
             # if not tokenObject:
             #    tokenObject = self._api_hooks.token_getter(
-            #        refresh_token=token, debug="revoke_token"
+            #        refresh_token_str=token_str, debug="revoke_token"
             #    )
 
         if tokenObject:
@@ -671,7 +687,7 @@ class OAuth2RequestValidator(RequestValidator):
         self._api_hooks.grant_setter(client_id, code, request, *args, **kwargs)
         return None
 
-    def save_token(self, token: Dict, request: oAuth_Request, *args, **kwargs) -> str:
+    def save_token(self, token: Dict, request: oAuth_Request, *args, **kwargs) -> None:
         """
         Persist the token with a token type specific method.
 
@@ -680,7 +696,7 @@ class OAuth2RequestValidator(RequestValidator):
         :param token: A (Bearer) token dict
         :param request: The HTTP Request (oauthlib.common.Request)
         """
-        return self.save_bearer_token(token, request, *args, **kwargs)
+        self.save_bearer_token(token, request, *args, **kwargs)
 
     def save_bearer_token(
         self, token: Dict, request: oAuth_Request, *args, **kwargs
@@ -737,14 +753,14 @@ class OAuth2RequestValidator(RequestValidator):
         return request.client.default_redirect_uri
 
     def validate_bearer_token(
-        self, token: str, scopes: List, request: oAuth_Request
+        self, token_str: str, scopes: List, request: oAuth_Request
     ) -> bool:
         """
         Validate access token.
 
         Detailed docs in `oauthlib.oauth2.rfc6749.request_validator.RequestValidator.validate_bearer_token`
 
-        :param token: A string of random characters.
+        :param token_str: A string of random characters.
         :param scopes: A list of scopes associated with the protected resource.
         :param request: The HTTP Request (oauthlib.common.Request)
         :rtype: True or False
@@ -761,33 +777,36 @@ class OAuth2RequestValidator(RequestValidator):
             - Resource Owner Password Credentials Grant
             - Client Credentials Grant
         """
-        log.debug("Validate bearer token %r", token)
-        tok = self._api_hooks.token_getter(access_token=token)
-        if not tok:
+        log.debug("Validate bearer token %r", token_str)
+        tokenObject = self._api_hooks.token_getter(access_token_str=token_str)
+        if not tokenObject:
             msg = "Bearer token not found."
             log.debug(msg)
             return False
 
         # validate expires
-        if tok.expires is not None and datetime.datetime.utcnow() > tok.expires:
+        if (
+            tokenObject.expires is not None
+            and datetime.datetime.utcnow() > tokenObject.expires
+        ):
             msg = "Bearer token is expired."
             log.debug(msg)
             return False
 
         # validate scopes
-        if scopes and not set(tok.scopes) & set(scopes):
+        if scopes and not set(tokenObject.scopes) & set(scopes):
             msg = "Bearer token scope not valid."
             log.debug(msg)
             return False
 
-        request.access_token = tok
-        request.user = tok.user
+        request.access_token_object = tokenObject  # type: ignore [attr-defined]
+        request.user = tokenObject.user
         request.scopes = scopes
 
-        if hasattr(tok, "client"):
-            request.client = tok.client
-        elif hasattr(tok, "client_id"):
-            request.client = self._api_hooks.client_getter(tok.client_id)
+        if hasattr(tokenObject, "client"):
+            request.client = tokenObject.client
+        elif hasattr(tokenObject, "client_id"):
+            request.client = self._api_hooks.client_getter(tokenObject.client_id)
         return True
 
     def validate_client_id(
@@ -939,15 +958,22 @@ class OAuth2RequestValidator(RequestValidator):
         function on grant for a customized validation.
         """
         request.client = request.client or self._api_hooks.client_getter(client_id)
-        client = request.client
+        if not request.client:
+            raise ValueError("Could not load `client`")
         if (
-            hasattr(client, "validate_redirect_uri") and client.validate_redirect_uri
+            hasattr(request.client, "validate_redirect_uri")
+            and request.client.validate_redirect_uri
         ):  # ensure it is defined
-            return client.validate_redirect_uri(redirect_uri)
-        return redirect_uri in client.redirect_uris
+            return request.client.validate_redirect_uri(redirect_uri)
+        return redirect_uri in request.client.redirect_uris
 
     def validate_refresh_token(
-        self, refresh_token: str, client: Any, request: oAuth_Request, *args, **kwargs
+        self,
+        refresh_token: str,
+        client: Any,
+        request: oAuth_Request,
+        *args,
+        **kwargs,
     ) -> bool:
         """
         Ensure the token is valid and belongs to the client
@@ -959,7 +985,7 @@ class OAuth2RequestValidator(RequestValidator):
         issuing refresh tokens, resource owner password credentials grant
         (also indirectly) and the refresh token grant.
 
-        :param refresh_token: Unicode refresh token.
+        :param refresh_token_str: Unicode refresh token.
         :param client: Client object set by you, see ``.authenticate_client``.
         :param request: OAuthlib request.
         :type request: oauthlib.common.Request
@@ -969,12 +995,11 @@ class OAuth2RequestValidator(RequestValidator):
             - Authorization Code Grant
             - Implicit Grant
         """
-        token = self._api_hooks.token_getter(refresh_token=refresh_token)
-
-        if token and token.client_id == client.client_id:
+        tokenObject = self._api_hooks.token_getter(refresh_token_str=refresh_token)
+        if tokenObject and tokenObject.client_id == client.client_id:
             # Make sure the request object contains user and client_id
-            request.client_id = token.client_id
-            request.user = token.user
+            request.client_id = tokenObject.client_id
+            request.user = tokenObject.user
             return True
         return False
 

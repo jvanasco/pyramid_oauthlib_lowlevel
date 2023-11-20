@@ -28,11 +28,19 @@ The following will refer to the model elements as `Object(tablename)`
 """
 # stdlib
 import datetime
+from typing import List
+from typing import Optional
+from typing import TYPE_CHECKING
 
 # pypi
 import sqlalchemy as sa
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.ext.declarative import DeclarativeMeta
+from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm import Mapped
+from sqlalchemy.orm import mapped_column
+
+if TYPE_CHECKING:
+    from sqlalchemy import Engine
+    from sqlalchemy.orm import Session
 
 # ==============================================================================
 
@@ -90,7 +98,11 @@ USERID_ACTIVE__AUTHORITY = 42
 
 # mymetadata = MetaData()
 # Base = declarative_base(metadata=mymetadata)
-Base: DeclarativeMeta = declarative_base()
+# Base: DeclarativeMeta = declarative_base()
+
+
+class Base(DeclarativeBase):
+    pass
 
 
 # ==============================================================================
@@ -98,7 +110,7 @@ Base: DeclarativeMeta = declarative_base()
 
 class Useraccount(Base):
     __tablename__ = "useraccount"
-    id = sa.Column(sa.Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
 
 
 class DeveloperApplication(Base):
@@ -107,22 +119,26 @@ class DeveloperApplication(Base):
     """
 
     __tablename__ = "developer_application"
-    id = sa.Column(sa.Integer, primary_key=True)
-    is_active = sa.Column(sa.Boolean, nullable=True, default=True)
-    useraccount_id__owner = sa.Column(
-        sa.Integer, sa.ForeignKey("useraccount.id"), nullable=True
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    is_active: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=True
     )
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    app_name_unique = sa.Column(sa.Unicode(32), nullable=False)
-    app_description = sa.Column(sa.Unicode(200), nullable=False)
-    app_website = sa.Column(sa.Unicode(200), nullable=False)
-    _default_scopes = sa.Column(
+    useraccount_id__owner: Mapped[Optional[int]] = mapped_column(
+        sa.Integer, sa.ForeignKey("useraccount.id"), nullable=False
+    )
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    app_name_unique: Mapped[str] = mapped_column(sa.Unicode(32), nullable=False)
+    app_description: Mapped[str] = mapped_column(sa.Unicode(200), nullable=False)
+    app_website: Mapped[str] = mapped_column(sa.Unicode(200), nullable=False)
+    _default_scopes: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(200), nullable=True
     )  # The value of the scope parameter is expressed as a list of space- delimited, case-sensitive strings.
-    is_confidential = sa.Column(
+    is_confidential: Mapped[Optional[bool]] = mapped_column(
         sa.Boolean, nullable=True, default=False
     )  # Flask-oauthlib uses this to implement some RFC details see ``OAuth2RequestValidator.client_authentication_required```
-    _redirect_uris = sa.Column(sa.Text, nullable=True)
+    _redirect_uris: Mapped[Optional[str]] = mapped_column(sa.Text, nullable=True)
 
     # this is used to find the current credentials
     app_keyset_active = sa.orm.relationship(
@@ -149,7 +165,7 @@ class DeveloperApplication(Base):
     )
 
     @property
-    def default_scopes(self):
+    def default_scopes(self) -> List:
         """
         store a STRING but must iterate a LIST on the interface
         """
@@ -160,7 +176,7 @@ class DeveloperApplication(Base):
     # allowed_response_types = ('client', 'token')
 
     @property
-    def redirect_uris(self):
+    def redirect_uris(self) -> List:
         """
         store a STRING but must iterate a LIST on the interface
         """
@@ -169,14 +185,14 @@ class DeveloperApplication(Base):
         return []
 
     @property
-    def default_redirect_uri(self):
+    def default_redirect_uri(self) -> Optional[str]:
         """
         store a STRING LIST but must provide a single string of the first item on the interface.
         """
         return self.redirect_uris[0] if self.redirect_uris else None
 
     @property
-    def client_type(self):
+    def client_type(self) -> str:
         """
         A string represents if this client is confidential or not.
         This is particular to the flask-oauthlib implementation which this library was ported from.
@@ -186,7 +202,7 @@ class DeveloperApplication(Base):
         return "public"
 
     @property
-    def client_id(self):
+    def client_id(self) -> str:
         """
         This is the ``Client.client_id``, which is implemented via ``DeveloperApplication_Keyset.client_id``
         This is the "public" component of the consumer keyset.
@@ -194,7 +210,7 @@ class DeveloperApplication(Base):
         return self.app_keyset_active.client_id
 
     @property
-    def client_secret(self):
+    def client_secret(self) -> str:
         """
         This is the ``Client.client_secret``, which is implemented via ``DeveloperApplication_Keyset.client_secret``
         This is the "private" component of the consumer keyset.
@@ -209,15 +225,21 @@ class DeveloperApplication_Keyset(Base):
     """
 
     __tablename__ = "developer_application_keyset"
-    id = sa.Column(sa.Integer, primary_key=True)
-    developer_application_id = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    developer_application_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("developer_application.id"), nullable=False
     )
-    is_active = sa.Column(sa.Boolean, nullable=True, default=True)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    timestamp_deactivated = sa.Column(sa.DateTime, nullable=True)
-    client_id = sa.Column(sa.Unicode(64), nullable=False)
-    client_secret = sa.Column(sa.Unicode(64), nullable=False)
+    is_active: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=True
+    )
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    timestamp_deactivated: Mapped[Optional[datetime.datetime]] = mapped_column(
+        sa.DateTime, nullable=True
+    )
+    client_id: Mapped[str] = mapped_column(sa.Unicode(64), nullable=False)
+    client_secret: Mapped[str] = mapped_column(sa.Unicode(64), nullable=False)
 
     developer_application = sa.orm.relationship(
         "DeveloperApplication",
@@ -241,19 +263,25 @@ class Developer_OAuth2Server_GrantToken(Base):
     """
 
     __tablename__ = "developer__oauth2_server__grant_token"
-    id = sa.Column(sa.Integer, primary_key=True)  # numeric
-    useraccount_id = sa.Column(
-        sa.Integer, sa.ForeignKey("useraccount.id"), nullable=False
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)  # numeric
+    useraccount_id: Mapped[int] = mapped_column(
+        sa.Integer, sa.ForeignKey("useraccount.id"), nullable=True
     )
-    developer_application_id = sa.Column(
+    developer_application_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("developer_application.id"), nullable=False
     )
-    code = sa.Column(sa.Unicode(255), nullable=False)
-    redirect_uri = sa.Column(sa.String(255))
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    timestamp_expires = sa.Column(sa.DateTime, nullable=False)
-    scope = sa.Column(sa.Unicode(1000), nullable=False)
-    is_active = sa.Column(sa.Boolean, nullable=True, default=True)
+    code: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+    redirect_uri: Mapped[Optional[str]] = mapped_column(sa.Unicode(255), nullable=True)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    timestamp_expires: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    scope: Mapped[str] = mapped_column(sa.Unicode(1000), nullable=False)
+    is_active: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=True
+    )
 
     developer_application = sa.orm.relationship(
         "DeveloperApplication",
@@ -269,28 +297,28 @@ class Developer_OAuth2Server_GrantToken(Base):
     )
 
     @property
-    def client_id(self):
+    def client_id(self) -> str:
         """
         This is the ``Client.client_id``, which is implemented via ``DeveloperApplication_Keyset.client_id``
         """
         return self.developer_application.app_keyset_active.client_id
 
     @property
-    def client(self):
+    def client(self) -> str:
         """
         This is the ``Client``, which is implemented via ``DeveloperApplication_Keyset``
         """
         return self.developer_application
 
     @property
-    def scopes(self):
+    def scopes(self) -> List:
         """
         store a STRING but must iterate a LIST on the interface
         """
         return self.scope.split(" ") if self.scope else []
 
     @property
-    def expires(self):
+    def expires(self) -> datetime.datetime:
         """
         The interface expects `expires` but we prefer a `timestamp` prefix on datetime columns.
         """
@@ -321,37 +349,43 @@ class Developer_OAuth2Server_BearerToken(Base):
     __table_args__ = (
         sa.CheckConstraint("NOT(access_token IS NULL AND refresh_token IS NULL)"),
     )
-    id = sa.Column(sa.Integer, primary_key=True)
-    useraccount_id = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    useraccount_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("useraccount.id"), nullable=False
     )
-    developer_application_id = sa.Column(
+    developer_application_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("developer_application.id"), nullable=False
     )
-    is_active = sa.Column(sa.Boolean, nullable=True, default=True)
-    access_token = sa.Column(
+    is_active: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=True
+    )
+    access_token: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(255), nullable=True, unique=True
     )  # `payload:access_token`
-    refresh_token = sa.Column(
+    refresh_token: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(255), nullable=True, unique=False
     )  # `payload:refresh_token`  # not unique because we might recycle these; will be NULL if this is a `client_credentials` grant | https://tools.ietf.org/html/rfc6749#section-4.4.3 states "A refresh token SHOULD NOT be included."
-    token_type = sa.Column(
+    token_type: Mapped[str] = mapped_column(
         sa.Unicode(32), nullable=False, default="Bearer"
     )  # `payload:token_type`, unnecessary
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    timestamp_expires = sa.Column(
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    timestamp_expires: Mapped[datetime.datetime] = mapped_column(
         sa.DateTime, nullable=False
     )  # based on `payload:expires_in`
-    timestamp_revoked = sa.Column(sa.DateTime, nullable=True)
-    scope = sa.Column(
+    timestamp_revoked: Mapped[Optional[datetime.datetime]] = mapped_column(
+        sa.DateTime, nullable=True
+    )
+    scope: Mapped[str] = mapped_column(
         sa.Unicode(1000), nullable=False
     )  # payload:scope  The value of the scope parameter is expressed as a list of space- delimited, case-sensitive strings.
 
     # this is some housekeeping for lineage tracking
-    grant_type = sa.Column(
+    grant_type: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(32), nullable=True
     )  # could be for a `user` or for the `client`
-    original_grant_type = sa.Column(
+    original_grant_type: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(32), nullable=True
     )  # could be for a `user` or for the `client`
 
@@ -369,18 +403,18 @@ class Developer_OAuth2Server_BearerToken(Base):
     )
 
     @property
-    def client_id(self):
+    def client_id(self) -> str:
         """
         This is the ``Client.client_id``, which we implement via ``DeveloperApplication_Keyset.client_id``
         """
         return self.developer_application.app_keyset_active.client_id
 
     @property
-    def scopes(self):
+    def scopes(self) -> List:
         return self.scope.split(" ") if self.scope else []
 
     @property
-    def expires(self):
+    def expires(self) -> datetime.datetime:
         """compliance with model"""
         return self.timestamp_expires
 
@@ -395,27 +429,35 @@ class Developer_OAuth2Client_BearerToken(Base):
 
     # payload = {"token_type": "Bearer", "user_id": 47, "access_token": "B6Qw8Pxcglg3R9Suly9wPRHKEN5bA8", "scope": "platform.actor platform.fun", "expires_in": 3600, "refresh_token": "QkxJKvusVmjg2wZCjdzhfFR1QejphF"}'
 
-    id = sa.Column(sa.Integer, primary_key=True)
-    useraccount_id = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    useraccount_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("useraccount.id"), nullable=False
     )
-    access_token = sa.Column(sa.Unicode(255), nullable=True, unique=True)
-    refresh_token = sa.Column(
+    access_token: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(255), nullable=True, unique=True
+    )
+    refresh_token: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(255), nullable=True, unique=False
     )  # not unique because we may recycle these
-    scope = sa.Column(sa.Unicode(1000), nullable=False)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    timestamp_expires = sa.Column(
+    scope: Mapped[str] = mapped_column(sa.Unicode(1000), nullable=False)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    timestamp_expires: Mapped[datetime.datetime] = mapped_column(
         sa.DateTime, nullable=False
     )  # based on `payload:expires_in
-    timestamp_revoked = sa.Column(sa.DateTime, nullable=True)
-    is_active = sa.Column(sa.Boolean, nullable=True, default=True)
+    timestamp_revoked: Mapped[Optional[datetime.datetime]] = mapped_column(
+        sa.DateTime, nullable=True
+    )
+    is_active: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=True
+    )
 
     # this is some housekeeping for lineage tracking
-    grant_type = sa.Column(
+    grant_type: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(32), nullable=True
     )  # could be for a `user` or for the `client`
-    original_grant_type = sa.Column(
+    original_grant_type: Mapped[Optional[str]] = mapped_column(
         sa.Unicode(32), nullable=True
     )  # could be for a `user` or for the `client`
 
@@ -427,16 +469,16 @@ class Developer_OAuth2Client_BearerToken(Base):
     )
 
     @property
-    def scopes(self):
+    def scopes(self) -> List:
         return self.scope.split(" ") if self.scope else []
 
     @property
-    def expires(self):
+    def expires(self) -> datetime.datetime:
         """compliance with model"""
         return self.timestamp_expires
 
 
-def initialize(engine, session):
+def initialize(engine: "Engine", session: "Session"):
     Base.metadata.create_all(engine)
 
     user1 = Useraccount(id=USERID_ACTIVE__APPLICATION)
@@ -467,6 +509,6 @@ def initialize(engine, session):
     keyset.client_secret = OAUTH2__APP_SECRET
     session.add(keyset)
 
-    app.keyset = keyset
+    app.app_keyset_active = keyset
     session.flush()
     session.commit()

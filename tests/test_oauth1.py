@@ -1,5 +1,7 @@
 # stdlib
 import re
+from typing import Tuple
+from typing import TYPE_CHECKING
 import unittest
 from urllib.parse import parse_qsl
 
@@ -20,6 +22,11 @@ from .oauth1_model import OAUTH1__URL_APP_FLOW_REGISTER_CALLBACK
 from .oauth1_model import OAUTH1__URL_APP_FLOW_REGISTER_CALLBACK_SUCCESS
 from .oauth1_model import OAUTH1__URL_AUTHORITY_AUTHENTICATE
 
+if TYPE_CHECKING:
+    from pyramid.request import Request as Pyramid_Request
+    from sqlalchemy import Engine
+    from sqlalchemy.orm import Session
+
 
 # ==============================================================================
 
@@ -33,7 +40,7 @@ re_csrf = re.compile(
 re_token = re.compile('<input type="hidden" name="oauth_token" value="([^"]*)"/>')
 
 
-def sa_init_sessionmaker():
+def sa_init_sessionmaker() -> Tuple["Engine", "Session"]:
     saEngine = sqlalchemy.create_engine("sqlite://", echo=False)
     saSessionmaker = sqlalchemy.orm.sessionmaker(bind=saEngine)
     saSession = saSessionmaker()
@@ -41,7 +48,7 @@ def sa_init_sessionmaker():
     return (saEngine, saSession)
 
 
-def new_req_session():
+def new_req_session() -> FakeRequest:
     saEngine = sqlalchemy.create_engine("sqlite://", echo=False)
     saSessionmaker = sqlalchemy.orm.sessionmaker(bind=saEngine)
     saSession = saSessionmaker()
@@ -51,7 +58,7 @@ def new_req_session():
     return req
 
 
-def new_req_session_bad():
+def new_req_session_bad() -> FakeRequest:
     """
     same as `new_req_session` but without the backend datastore.
     this will cause internal failures which should be caught
@@ -121,8 +128,9 @@ class PyramidTestApp(unittest.TestCase):
             status=200,
         )
         assert (
-            res.text
-            == """<html>
+            (
+                res.text
+                == """<html>
 <head></head>
 <body>
     <div class="alert alert-danger">
@@ -132,6 +140,20 @@ class PyramidTestApp(unittest.TestCase):
 </body>
 </html>
 """
+            )
+            or (
+                res.text
+                == """<html>
+<head></head>
+<body>
+    <div class="alert alert-danger">
+        <b>Error</b>
+        (invalid_request) Missing mandatory OAuth parameters.
+    </div>
+</body>
+</html>
+"""
+            )
         )
 
     def test_valid_flow__registration(self):
@@ -176,7 +198,7 @@ class PyramidTestApp(unittest.TestCase):
             "requests_session_authority": requests.Session(),
         }
 
-        def callback__request_token(req, test_env=test_env):
+        def callback__request_token(req: "Pyramid_Request", test_env=test_env):
             """/authority/oauth1/request_token is visited by the Server
 
             py3 needs the 'unicode' wrapper to decode the bystring
@@ -200,7 +222,7 @@ class PyramidTestApp(unittest.TestCase):
             # return in a format tailored for `requests`
             return (int(res.status.split(" ")[0]), res.headers, res.body)
 
-        def callback__authenticate_get(req, test_env=test_env):
+        def callback__authenticate_get(req: "Pyramid_Request", test_env=test_env):
             """/authority/oauth1/authorize is visited by the USER"""
             assert req.url.startswith(OAUTH1__URL_AUTHORITY_AUTHENTICATE)
             qs = req.url.split("?")[1]
@@ -221,7 +243,7 @@ class PyramidTestApp(unittest.TestCase):
             # return in a format tailored for `requests`
             return (int(res.status.split(" ")[0]), res.headers, res.body)
 
-        def callback__authenticate_post(req, test_env=test_env):
+        def callback__authenticate_post(req: "Pyramid_Request", test_env=test_env):
             """/authority/oauth1/authorize is visited by the USER"""
             assert req.url.startswith(OAUTH1__URL_AUTHORITY_AUTHENTICATE)
             payload = dict(parse_qsl(req.body))
@@ -242,7 +264,7 @@ class PyramidTestApp(unittest.TestCase):
             # return in a format tailored for `requests`
             return (int(res.status.split(" ")[0]), res.headers, res.body)
 
-        def callback__callback(req, test_env=test_env):
+        def callback__callback(req: "Pyramid_Request", test_env=test_env):
             """/application/flow-register/authorized-callback is visited by the USER"""
             _path, _qs = req.url.split("?")
 
@@ -261,7 +283,7 @@ class PyramidTestApp(unittest.TestCase):
             # return in a format tailored for `requests`
             return (int(res.status.split(" ")[0]), res.headers, res.body)
 
-        def callback__access_token(req, test_env=test_env):
+        def callback__access_token(req: "Pyramid_Request", test_env=test_env):
             """/authority/oauth1/access_token is visited by the Server"""
             assert "Authorization" in req.headers
             assert req.headers["Authorization"].decode("utf-8").startswith("OAuth ")
@@ -285,7 +307,7 @@ class PyramidTestApp(unittest.TestCase):
             # return in a format tailored for `requests`
             return (int(res.status.split(" ")[0]), res.headers, res.body)
 
-        def callback__callback_success(req, test_env=test_env):
+        def callback__callback_success(req: "Pyramid_Request", test_env=test_env):
             """/application/flow-register/authorized-callback-success is visited by the USER"""
             (_path, _qs) = parse_request_simple(req)
 

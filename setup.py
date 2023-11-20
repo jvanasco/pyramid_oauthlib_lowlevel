@@ -23,6 +23,7 @@ requires = [
     "pyramid",
     "requests_oauthlib",
     "requests",
+    "typing_extensions",  # needed for Literal on 3.7
 ]
 tests_require = [
     "pyramid_formencode_classic",
@@ -31,7 +32,7 @@ tests_require = [
     "pyramid",
     "pytest",
     "responses",
-    "sqlalchemy",
+    "sqlalchemy>2.0",
     "webtest",
     "zope.sqlalchemy",
 ]
@@ -52,12 +53,12 @@ setup(
         "Framework :: Pyramid",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "License :: OSI Approved :: BSD License",
     ],
     keywords="web pyramid oauth oauthlib",

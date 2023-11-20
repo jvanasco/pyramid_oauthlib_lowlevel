@@ -2,6 +2,7 @@
 import logging
 import os
 import re
+from typing import TYPE_CHECKING
 import unittest
 from urllib.parse import parse_qsl
 
@@ -16,6 +17,9 @@ from pyramid_oauthlib_lowlevel.utils import string_headers
 from . import oauth2_model
 from . import oauth2_utils
 from ._utils import parse_request_simple
+
+if TYPE_CHECKING:
+    from pyramid.request import Request as Pyramid_Request
 
 log = logging.getLogger(__name__)
 
@@ -47,7 +51,7 @@ class PyramidTestApp(unittest.TestCase):
         self.testapp_app = TestApp(app)
         self.testapp_authority = TestApp(app)
 
-    def _debug_callback(self, test_name, callback_name):
+    def _debug_callback(self, test_name: str, callback_name: str):
         if DEBUG_LOGIC:
             print("# ", "=" * 40)
             print(
@@ -98,7 +102,7 @@ class PyramidTestApp(unittest.TestCase):
         # client_id = oauth2_model.OAUTH2__APP_KEY
         # client_secret = oauth2_model.OAUTH2__APP_SECRET
 
-        def callback__authorization_base_url(req):
+        def callback__authorization_base_url(req: "Pyramid_Request"):
             """/authority/oauth2/flow-a/authorization is visited by the USER_BROWSER"""
             self._debug_callback(
                 "test_valid_flow__registration", "callback__authorization_base_url"
@@ -123,7 +127,7 @@ class PyramidTestApp(unittest.TestCase):
             # return in a format tailored for `requests`
             return (int(res.status.split(" ")[0]), res.headers, res.body)
 
-        def callback__authorization_base_url_post(req):
+        def callback__authorization_base_url_post(req: "Pyramid_Request"):
             """POST /authority/oauth2/flow-a/authorization is visited by the USER_BROWSER after doing the GET"""
             self._debug_callback(
                 "test_valid_flow__registration", "callback__authorization_base_url_post"
@@ -173,7 +177,7 @@ class PyramidTestApp(unittest.TestCase):
         #    # return in a format tailored for `requests`
         #    return (int(res.status.split(' ')[0]), res.headers, res.body)
 
-        def callback__token_url_post(req):
+        def callback__token_url_post(req: "Pyramid_Request"):
             """POST /authority/oauth2/flow-a/token is made by the client (IN THE SERVER) to get a token for the code"""
             self._debug_callback(
                 "test_valid_flow__registration", "callback__token_url_post"
@@ -198,7 +202,7 @@ class PyramidTestApp(unittest.TestCase):
 
             return (int(res.status.split(" ")[0]), res.headers, res.body)
 
-        def callback__app_callback(req):
+        def callback__app_callback(req: "Pyramid_Request"):
             """/application/flow-register/authorized-callback is visited by the USER_BROWSER"""
             self._debug_callback(
                 "test_valid_flow__registration", "callback__app_callback"
@@ -224,7 +228,7 @@ class PyramidTestApp(unittest.TestCase):
             # return in a format tailored for `requests`
             return (int(res.status.split(" ")[0]), res.headers, res.body)
 
-        def callback__app_callback_success(req, test_env=test_env):
+        def callback__app_callback_success(req: "Pyramid_Request", test_env=test_env):
             """/application/flow-register/authorized-callback-success is visited by the USER"""
             self._debug_callback(
                 "test_valid_flow__registration", "callback__app_callback_success"
@@ -246,7 +250,9 @@ class PyramidTestApp(unittest.TestCase):
             # return in a format tailored for `requests`
             return (int(res.status.split(" ")[0]), res.headers, res.body)
 
-        def callback__app_fetch_protected_resource(req, test_env=test_env):
+        def callback__app_fetch_protected_resource(
+            req: "Pyramid_Request", test_env=test_env
+        ):
             """/application/account/fetch-protected-resource is visited by the USER"""
             self._debug_callback(
                 "test_valid_flow__registration",
@@ -269,7 +275,9 @@ class PyramidTestApp(unittest.TestCase):
             # return in a format tailored for `requests`
             return (int(res.status.split(" ")[0]), res.headers, res.body)
 
-        def callback__authority_protected_resource(req, test_env=test_env):
+        def callback__authority_protected_resource(
+            req: "Pyramid_Request", test_env=test_env
+        ):
             """/authority/oauth2/protected_resource is visited by the USER"""
             self._debug_callback(
                 "test_valid_flow__registration",
@@ -292,7 +300,7 @@ class PyramidTestApp(unittest.TestCase):
             # return in a format tailored for `requests`
             return (int(res.status.split(" ")[0]), res.headers, res.body)
 
-        def callback__app_refresh_token(req, test_env=test_env):
+        def callback__app_refresh_token(req: "Pyramid_Request", test_env=test_env):
             """/application/account/refresh-token is visited by the USER"""
             self._debug_callback(
                 "test_valid_flow__registration", "callback__app_refresh_token"
@@ -314,7 +322,9 @@ class PyramidTestApp(unittest.TestCase):
             # return in a format tailored for `requests`
             return (int(res.status.split(" ")[0]), res.headers, res.body)
 
-        def callback__app_refresh_token_recycle(req, test_env=test_env):
+        def callback__app_refresh_token_recycle(
+            req: "Pyramid_Request", test_env=test_env
+        ):
             """/application/account/refresh-token-recycle is visited by the USER"""
             self._debug_callback(
                 "test_valid_flow__registration", "callback__app_refresh_token_recycle"
@@ -336,7 +346,7 @@ class PyramidTestApp(unittest.TestCase):
             # return in a format tailored for `requests`
             return (int(res.status.split(" ")[0]), res.headers, res.body)
 
-        def callback__app_revoke_token(req, test_env=test_env):
+        def callback__app_revoke_token(req: "Pyramid_Request", test_env=test_env):
             """/application/account/revoke-token is visited by the USER"""
             self._debug_callback(
                 "test_valid_flow__registration", "callback__app_revoke_token"
@@ -358,7 +368,7 @@ class PyramidTestApp(unittest.TestCase):
             # return in a format tailored for `requests`
             return (int(res.status.split(" ")[0]), res.headers, res.body)
 
-        def callback__url_revoke_token_post(req):
+        def callback__url_revoke_token_post(req: "Pyramid_Request"):
             self._debug_callback(
                 "test_valid_flow__registration", "callback__url_revoke_token_post"
             )
@@ -688,7 +698,7 @@ class PyramidTestApp(unittest.TestCase):
             oauth_version=2,
         )
 
-        def callback__url_obtain_token__post(req):
+        def callback__url_obtain_token__post(req: "Pyramid_Request"):
             self._debug_callback(
                 "test_valid_flow__client_credentials_grant",
                 "callback__url_obtain_token__post",
@@ -712,7 +722,7 @@ class PyramidTestApp(unittest.TestCase):
             # return in a format tailored for `requests`
             return (int(res.status.split(" ")[0]), res.headers, res.body)
 
-        def callback__url_obtain_token_alt__post(req):
+        def callback__url_obtain_token_alt__post(req: "Pyramid_Request"):
             self._debug_callback(
                 "test_valid_flow__client_credentials_grant",
                 "callback__url_obtain_token_alt__post",
@@ -736,7 +746,7 @@ class PyramidTestApp(unittest.TestCase):
             # return in a format tailored for `requests`
             return (int(res.status.split(" ")[0]), res.headers, res.body)
 
-        def callback__url_token_limited__post(req):
+        def callback__url_token_limited__post(req: "Pyramid_Request"):
             self._debug_callback(
                 "test_valid_flow__client_credentials_grant",
                 "callback__url_token_limited__post",
@@ -760,7 +770,7 @@ class PyramidTestApp(unittest.TestCase):
             # return in a format tailored for `requests`
             return (int(res.status.split(" ")[0]), res.headers, res.body)
 
-        def callback__url_revoke_token_post(req):
+        def callback__url_revoke_token_post(req: "Pyramid_Request"):
             self._debug_callback(
                 "test_valid_flow__client_credentials_grant",
                 "callback__url_revoke_token_post",
@@ -842,10 +852,10 @@ class PyramidTestApp(unittest.TestCase):
             assert "Only `POST` is accepted." in res.text
 
             # can we revoke the token?
-            token_result = apiClient.revoke_access_token(
+            token_result_revoke = apiClient.revoke_access_token(
                 token=token_result.get("access_token")
             )
-            assert token_result is True
+            assert token_result_revoke is True
 
             # now try the limited endpoint!
             try:
@@ -854,6 +864,8 @@ class PyramidTestApp(unittest.TestCase):
                 raise ValueError("we shold not get here")
             except ApiError as exc:
                 assert exc.msg == "Unable to obtain OAuth 2 access token."
+                if TYPE_CHECKING:
+                    assert exc.original_response is not None
                 assert (
                     exc.original_response.text == '{"error": "unsupported_grant_type"}'
                 )

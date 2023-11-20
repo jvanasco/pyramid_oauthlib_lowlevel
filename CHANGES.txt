@@ -1,3 +1,112 @@
+0.4.0
+    * drop Python3.6, as SqlAlchemy2.0 is required for tests
+    * Additional typing
+    * `request.access_token` is now a private `request.access_token_object`,
+      which is this package (and integrators') datastore backed object to
+      more properly isolate it from the various oAuthlib token instances.
+    * Removed deprecated functions:
+      * oauth1.validator.OAuth1RequestValidator_Hooks.create_access_token_existing
+      * oauth1.validator.OAuth1RequestValidator.create_access_token_existing
+      * tests.oauth1_utils.CustomValidator_Hooks.create_access_token_existing
+    * require typing_extensions as `Literal` is not in Python3.7
+    * Changed:
+        OAuth2RequestValidator_Hooks.bearer_token_setter
+            `token` -> `token_dict`
+
+        OAuth2RequestValidator_Hooks.bearer_token_setter
+            `access_token` -> `access_token_str`
+            `refresh_token` -> `refresh_token_str`
+
+        OAuth2RequestValidator_Hooks.token_getter
+            `access_token` -> `access_token_str`
+            `refresh_token` -> `refresh_token_str`
+
+        OAuth2RequestValidator.validate_bearer_token
+            `token` -> `token_str`
+
+        OAuth2RequestValidator.validate_bearer_token
+            `refresh_token` -> `refresh_token_str`
+            
+        OAuth1RequestValidator_Hooks.access_token_getter
+            `token` -> `token_str`
+
+        OAuth1RequestValidator_Hooks.access_token_setter
+            `token` -> `token_dict`
+
+        OAuth1RequestValidator_Hooks.request_token_getter
+            `token` -> `token_str`
+
+        OAuth1RequestValidator_Hooks.request_token_setter
+            `token` -> `token_dict`
+
+        OAuth1RequestValidator_Hooks.request_token_invalidator
+            `request_token` -> `token_str`
+
+        OAuth1RequestValidator_Hooks.nonce_getter
+            `request` now 4th arg
+            `access_token` -> `access_token_str`
+            `refresh_token` -> `refresh_token_str`
+
+        OAuth1RequestValidator_Hooks.nonce_setter
+            `request` now 4th arg
+            `access_token` -> `access_token_str`
+            `refresh_token` -> `refresh_token_str`
+
+        OAuth1RequestValidator_Hooks.verifier_getter
+            `verifier` -> `verifier_str`
+            `token` -> `token_str`
+
+        OAuth1RequestValidator_Hooks.verifier_setter
+            `verifier` -> `verifier_str`
+            `token` -> `token_str`
+
+        OAuth1RequestValidator._get_RequestTokenObject
+            `token` -> `token_str`
+
+        OAuth1RequestValidator.get_request_token_secret
+            `token` -> `token_str`
+
+        OAuth1RequestValidator.get_access_token_secret
+            `token` -> `token_str`
+
+        OAuth1RequestValidator.get_realms
+            `token` -> `token_str`
+
+        OAuth1RequestValidator.get_redirect_uri
+            `token` -> `token_str`
+
+        OAuth1RequestValidator.validate_request_token
+            `token` -> `token_str`
+
+        OAuth1RequestValidator.validate_access_token
+            `token` -> `token_str`
+
+        OAuth1RequestValidator.validate_timestamp_and_nonce
+            `request` now 4th arg
+
+        OAuth1RequestValidator.validate_realms
+            `token` -> `token_str`
+
+        OAuth1RequestValidator.validate_verifier
+            `token` -> `token_str`
+            `verifier` -> `verifier_str`
+
+        OAuth1RequestValidator.verify_request_token
+            `token` -> `token_str`
+
+        OAuth1RequestValidator.verify_realms
+            `token` -> `token_str`
+
+        OAuth1RequestValidator.save_access_token
+            `token` -> `token_dict`
+
+        OAuth1RequestValidator.save_request_token
+            `token` -> `token_dict`
+
+        OAuth1RequestValidator.save_verifier
+            `token` -> `token_str`
+            `verifier` -> `verifier_str`
+
 0.3.0
     * drop py2.7,py35
     * initial mypy support

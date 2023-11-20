@@ -1,8 +1,20 @@
 # stdlib
 import datetime
+from http.cookiejar import CookieJar
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Tuple
+from typing import TYPE_CHECKING
+from typing import Union
 
 # pypi
+import webtest
 import webtest.app
+
+if TYPE_CHECKING:
+    from pyramid_sqlassist.interface import _TYPES_SESSION
+
 
 # ==============================================================================
 
@@ -21,32 +33,39 @@ class FakeRequest(object):
     current version
     """
 
-    _method = None
-    _post = None
-    dbSession = None
-    datetime = None
-    active_useraccount_id = None
+    _current_route_url: Optional[str] = None
+    _method: Optional[str] = None
+    _post: Optional[Dict] = None
+    active_useraccount_id: Optional[int] = None
+    dbSession: "_TYPES_SESSION" = None
+    timestamp: Optional[datetime.datetime] = None
+    registry: FakeRegistry
+    headers: Union[Dict, List]
 
     def __init__(self):
-        self.datetime = datetime.datetime.utcnow()
+        self.timestamp = datetime.datetime.utcnow()
         self.registry = FakeRegistry()
         self.headers = []
 
-    def current_route_url(self, uri=None):
+    def current_route_url(self, uri: Optional[str] = None) -> Optional[str]:
         if uri is not None:
             self._current_route_url = uri
         return self._current_route_url
 
     @property
-    def method(self):
+    def url(self):
+        return self.current_route_url()
+
+    @property
+    def method(self) -> str:
         return self._method or "GET"
 
     @property
-    def POST(self):
+    def POST(self) -> Dict:
         return self._post or {}
 
 
-def parse_request_simple(req):
+def parse_request_simple(req: "FakeRequest") -> Tuple[str, str]:
     if "?" in req.url:
         _path, _qs = req.url.split("?")
     else:
@@ -68,11 +87,11 @@ class IsolatedTestapp(object):
         ``cookiejar_local`` local cookiejar to context manager.
     """
 
-    testapp = None
+    testapp: webtest.TestApp
     cookiejar_original = None
     cookiejar_local = None
 
-    def __init__(self, testapp, cookiejar=None):
+    def __init__(self, testapp: webtest.TestApp, cookiejar: Optional[CookieJar] = None):
         """
         args:
             ``testapp`` active ``webtest.TestApp`` instance

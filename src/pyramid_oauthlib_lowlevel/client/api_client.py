@@ -4,12 +4,14 @@ import logging
 from typing import Any
 from typing import Dict
 from typing import Optional
+from typing import TYPE_CHECKING
 from urllib.parse import parse_qsl
 from urllib.parse import urlencode
 
 # pypi
 import requests
 from requests.auth import HTTPBasicAuth
+from requests.models import PreparedRequest
 from requests_oauthlib import OAuth1
 from requests_oauthlib import OAuth2
 
@@ -19,7 +21,7 @@ log = logging.getLogger(__name__)
 
 
 class ApiError(Exception):
-    error_code = None
+    error_code: Optional[int] = None
     original_exception: Optional[Exception]
     original_response: Optional[Any]
     original_content: Optional[str]
@@ -28,9 +30,9 @@ class ApiError(Exception):
 
     def __init__(
         self,
-        msg,
-        error_code=None,
-        retry_after=None,
+        msg: str,
+        error_code: Optional[int] = None,
+        retry_after: Optional[int] = None,
     ):
         self.error_code = error_code
         super(ApiError, self).__init__(msg)
@@ -76,16 +78,16 @@ class ApiClient(object):
 
     def __init__(
         self,
-        app_key=None,
-        app_secret=None,
-        oauth_token=None,
-        oauth_token_secret=None,
-        access_token=None,
-        token_type="bearer",
-        oauth_version=1,
-        api_version="v1",
-        client_args=None,
-        auth_endpoint="authorize",
+        app_key: Optional[str] = None,
+        app_secret: Optional[str] = None,
+        oauth_token: Optional[str] = None,
+        oauth_token_secret: Optional[str] = None,
+        access_token: Optional[str] = None,
+        token_type: str = "bearer",
+        oauth_version: int = 1,
+        api_version: str = "v1",
+        client_args: Optional[Dict] = None,
+        auth_endpoint: str = "authorize",
     ):
         # API urls, OAuth urls and API version; needed for hitting that there
         # API.
@@ -180,7 +182,7 @@ class ApiClient(object):
         self,
         callback_url: Optional[str] = None,
         extra_args: Optional[Dict] = None,
-        force_login=False,
+        force_login: bool = False,
     ) -> Dict:
         """
         Returns a dict including an authorization URL, ``auth_url``, to
@@ -202,6 +204,9 @@ class ApiClient(object):
 
         if force_login:
             raise ValueError("`force_login` is not implemented yet")
+
+        if TYPE_CHECKING:
+            assert isinstance(self.client.auth, PreparedRequest)
 
         # we toggle this in, then fix
         _callback_uri_old = self.client.auth.client.callback_uri
@@ -277,6 +282,9 @@ class ApiClient(object):
                 if k not in request_args:
                     request_args[k] = v
 
+        if TYPE_CHECKING:
+            assert isinstance(self.client.auth, PreparedRequest)
+
         self.client.auth.client.verifier = oauth_verifier
         response = self.client.get(
             self.access_token_url,
@@ -331,8 +339,11 @@ class ApiClient(object):
             )
 
         data = {"grant_type": "client_credentials"}
+        assert self.app_key
+        assert self.app_secret
         basic_auth = HTTPBasicAuth(self.app_key, self.app_secret)
-        content = None
+        content_str: Optional[str] = None
+        content_dict: Dict
         request_args = {}
         response = None
         if extra_args:
@@ -347,14 +358,14 @@ class ApiClient(object):
             # requests/iso-http-spec defaults to latin-1 if no encoding is present
             # we know this is utf-8 because of the oauth spec
             # so we force utf-8 here off the .content
-            content = response.content.decode("utf-8")
+            content_str = response.content.decode("utf-8")
             try:
-                content = content.json()
+                content_dict = content_str.json()  # type: ignore[attr-defined]
             except AttributeError:
-                content = json.loads(content)
+                content_dict = json.loads(content_str)
 
             # _bearer_token = content["access_token"]
-            _token_type = content["token_type"]
+            _token_type = content_dict["token_type"]
             if _token_type != "Bearer":
                 raise ValueError()
 
@@ -362,14 +373,14 @@ class ApiClient(object):
             log.debug(
                 "Exception `%s` in `obtain_access_token`: %s" % (type(ex_og), ex_og)
             )
-            log.debug(content)
+            log.debug(content_str)
             ex = ApiAuthError("Unable to obtain OAuth 2 access token.")
             ex.original_exception = ex_og
             ex.original_response = response
-            ex.original_content = content
+            ex.original_content = content_str
             raise ex
         else:
-            return content
+            return content_dict
 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -391,6 +402,8 @@ class ApiClient(object):
         data = {"token": token}
         if token_type_hint:
             data["token_type_hint"] = token_type_hint
+        assert self.app_key
+        assert self.app_secret
         basic_auth = HTTPBasicAuth(self.app_key, self.app_secret)
         try:
             response = self.client.post(

@@ -33,7 +33,7 @@ class AttribSafeContextObj(object):
 my_session_factory = SignedCookieSessionFactory("itsaseekreet")
 
 
-def main(global_config, **settings):
+def main(global_config: "Configurator", **settings):
     """This function returns a Pyramid WSGI application."""
 
     if not settings:
@@ -91,7 +91,7 @@ def main(global_config, **settings):
 
     # request methods!
     config.add_request_method(
-        lambda request: datetime.datetime.utcnow(), "datetime", reify=True
+        lambda request: datetime.datetime.utcnow(), "timestamp", reify=True
     )
     config.add_request_method(
         lambda request: request.session["active_useraccount_id"]

@@ -1,4 +1,9 @@
+from typing import Dict
+from typing import Optional
+from typing import TYPE_CHECKING
+
 # pypi
+from sqlalchemy import Engine
 from sqlalchemy import engine_from_config
 from sqlalchemy.orm import configure_mappers
 from sqlalchemy.orm import sessionmaker
@@ -10,6 +15,12 @@ import zope.sqlalchemy
 # local
 from ... import oauth2_model
 
+if TYPE_CHECKING:
+    from pyramid.config import Configurator
+    from pyramid.request import Request
+    from sqlalchemy.orm import Session
+    from transaction import TransactionManager
+
 # ==============================================================================
 
 # run configure_mappers after defining all of the models to ensure
@@ -17,18 +28,22 @@ from ... import oauth2_model
 configure_mappers()
 
 
-def _get_engine(settings, prefix="sqlalchemy."):
+def _get_engine(settings: Dict, prefix="sqlalchemy.") -> Engine:
     # leading underscore, because this can return different engines
     return engine_from_config(settings, prefix)
 
 
-def get_session_factory(engine):
+def get_session_factory(engine: "Engine") -> sessionmaker:
     factory = sessionmaker()
     factory.configure(bind=engine)
     return factory
 
 
-def get_tm_session(request, session_factory, transaction_manager):
+def get_tm_session(
+    request: "Request",
+    session_factory: sessionmaker,
+    transaction_manager: Optional["TransactionManager"],
+) -> "Session":
     """
     Get a ``sqlalchemy.orm.Session`` instance backed by a transaction.
 
@@ -63,7 +78,7 @@ def get_tm_session(request, session_factory, transaction_manager):
     return dbSession
 
 
-def includeme(config):
+def includeme(config: "Configurator"):
     """
     Initialize the model for a Pyramid app.
 

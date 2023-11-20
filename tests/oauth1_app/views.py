@@ -4,6 +4,7 @@ fake app for tests
 # stdlib
 import logging
 import os
+from typing import TYPE_CHECKING
 
 # pypi
 from formencode import Schema as form_Schema
@@ -28,6 +29,9 @@ from ..oauth1_model import USERID_ACTIVE__AUTHORITY
 from ..oauth1_utils import CustomApiClient
 from ..oauth1_utils import get_ApiExampleAppData
 from ..oauth1_utils import new_oauth1Provider
+
+if TYPE_CHECKING:
+    from pyramid.request import Request as PyramidRequest
 
 # ==============================================================================
 
@@ -60,7 +64,9 @@ class Form_OAuthToken(form_Schema):
 
 
 class Handler(object):
-    def __init__(self, request):
+    request: "PyramidRequest"
+
+    def __init__(self, request: "PyramidRequest"):
         self.request = request
 
 
@@ -440,7 +446,7 @@ class ExampleApp_FlowRegister(Handler):
         newGrant = Developer_oAuth1Client_TokenAccess()
         newGrant.developer_application_id = app_data["id"]
         newGrant.useraccount_id = self.request.active_useraccount_id
-        newGrant.timestamp_created = self.request.datetime
+        newGrant.timestamp_created = self.request.timestamp
         newGrant.oauth_token = authorized["oauth_token"]
         newGrant.oauth_token_secret = authorized["oauth_token_secret"]
         newGrant._realms = (

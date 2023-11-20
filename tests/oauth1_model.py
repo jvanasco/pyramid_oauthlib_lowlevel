@@ -2,11 +2,16 @@
 
 # stdlib
 import datetime
+from typing import List
+from typing import Optional
 
 # pypi
 import sqlalchemy as sa
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.ext.declarative import DeclarativeMeta
+from sqlalchemy import Engine
+from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm import Mapped
+from sqlalchemy.orm import mapped_column
+from sqlalchemy.orm import Session
 
 # ==============================================================================
 
@@ -45,7 +50,9 @@ USERID_ACTIVE__AUTHORITY = 42
 
 # mymetadata = MetaData()
 # Base = declarative_base(metadata=mymetadata)
-Base: DeclarativeMeta = declarative_base()
+# Base: DeclarativeMeta = declarative_base()
+class Base(DeclarativeBase):
+    pass
 
 
 # ==============================================================================
@@ -53,7 +60,7 @@ Base: DeclarativeMeta = declarative_base()
 
 class Useraccount(Base):
     __tablename__ = "useraccount"
-    id = sa.Column(sa.Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
 
 
 class DeveloperApplication(Base):
@@ -74,17 +81,21 @@ class DeveloperApplication(Base):
     """
 
     __tablename__ = "developer_application"
-    id = sa.Column(sa.Integer, primary_key=True)
-    is_active = sa.Column(sa.Boolean, nullable=True, default=True)
-    useraccount_id__owner = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    is_active: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=True
+    )
+    useraccount_id__owner: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("useraccount.id"), nullable=True
     )
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    app_name_unique = sa.Column(sa.Unicode(32), nullable=False)
-    app_description = sa.Column(sa.Unicode(200), nullable=False)
-    app_website = sa.Column(sa.Unicode(200), nullable=False)
-    app_scope = sa.Column(sa.Unicode(200), nullable=True)
-    callback_url = sa.Column(sa.Unicode(200), nullable=True)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    app_name_unique: Mapped[str] = mapped_column(sa.Unicode(32), nullable=False)
+    app_description: Mapped[str] = mapped_column(sa.Unicode(200), nullable=False)
+    app_website: Mapped[str] = mapped_column(sa.Unicode(200), nullable=False)
+    app_scope: Mapped[Optional[str]] = mapped_column(sa.Unicode(200), nullable=True)
+    callback_url: Mapped[Optional[str]] = mapped_column(sa.Unicode(200), nullable=True)
 
     app_keyset_active = sa.orm.relationship(
         "DeveloperApplication_Keyset",
@@ -100,27 +111,27 @@ class DeveloperApplication(Base):
     )
 
     @property
-    def client_key(self):
+    def client_key(self) -> str:
         """compatibility with `OAuth1Server_Client`"""
         return self.app_keyset_active.consumer_key
 
     @property
-    def client_secret(self):
+    def client_secret(self) -> str:
         """compatibility with `OAuth1Server_Client`"""
         return self.app_keyset_active.consumer_secret
 
     @property
-    def redirect_uris(self):
+    def redirect_uris(self) -> List[Optional[str]]:
         """compatibility with `OAuth1Server_Client`"""
         return [self.callback_url]
 
     @property
-    def default_redirect_uri(self):
+    def default_redirect_uri(self) -> Optional[str]:
         """compatibility with `OAuth1Server_Client`"""
         return self.callback_url
 
     @property
-    def default_realms(self):
+    def default_realms(self) -> List[str]:
         """compatibility with `OAuth1Server_Client`
         oauthlib wants to READONLY an array of realms, the db wants a string,"""
         if self.app_scope:
@@ -132,15 +143,21 @@ class DeveloperApplication(Base):
 
 class DeveloperApplication_Keyset(Base):
     __tablename__ = "developer_application_keyset"
-    id = sa.Column(sa.Integer, primary_key=True)
-    developer_application_id = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    developer_application_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("developer_application.id"), nullable=False
     )
-    is_active = sa.Column(sa.Boolean, nullable=True, default=True)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    timestamp_deactivated = sa.Column(sa.DateTime, nullable=True)
-    consumer_key = sa.Column(sa.Unicode(64), nullable=False)
-    consumer_secret = sa.Column(sa.Unicode(64), nullable=False)
+    is_active: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=True
+    )
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    timestamp_deactivated: Mapped[Optional[datetime.datetime]] = mapped_column(
+        sa.DateTime, nullable=True
+    )
+    consumer_key: Mapped[str] = mapped_column(sa.Unicode(64), nullable=False)
+    consumer_secret: Mapped[str] = mapped_column(sa.Unicode(64), nullable=False)
 
     developer_application = sa.orm.relationship(
         "DeveloperApplication",
@@ -170,24 +187,38 @@ class Developer_oAuth1Server_TokenRequest(Base):
     """
 
     __tablename__ = "developer__oauth1_server__token_request"
-    id = sa.Column(sa.Integer, primary_key=True)
-    developer_application_id = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    developer_application_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("developer_application.id"), nullable=False
     )
-    useraccount_id = sa.Column(
+    useraccount_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("useraccount.id"), nullable=True
     )
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    timestamp_expires = sa.Column(sa.DateTime, nullable=True)
-    _realms = sa.Column(sa.Unicode(255), nullable=False)
-    oauth_token = sa.Column(sa.Unicode(1000), nullable=False)
-    oauth_token_secret = sa.Column(sa.Unicode(1000), nullable=False)
-    oauth_verifier = sa.Column(sa.Unicode(1000), nullable=True)
-    oauth_version = sa.Column(sa.Unicode(5), nullable=False, default="1")
-    redirect_uri = sa.Column(sa.Unicode(255), nullable=False)
-    oauth_callback_confirmed = sa.Column(sa.Unicode(1000), nullable=False)
-    is_rejected = sa.Column(sa.Boolean, nullable=True, default=None)
-    is_active = sa.Column(sa.Boolean, nullable=True, default=True)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    timestamp_expires: Mapped[Optional[datetime.datetime]] = mapped_column(
+        sa.DateTime, nullable=True
+    )
+    _realms: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+    oauth_token: Mapped[str] = mapped_column(sa.Unicode(1000), nullable=False)
+    oauth_token_secret: Mapped[str] = mapped_column(sa.Unicode(1000), nullable=False)
+    oauth_verifier: Mapped[Optional[str]] = mapped_column(
+        sa.Unicode(1000), nullable=True
+    )
+    oauth_version: Mapped[str] = mapped_column(
+        sa.Unicode(5), nullable=False, default="1"
+    )
+    redirect_uri: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+    oauth_callback_confirmed: Mapped[str] = mapped_column(
+        sa.Unicode(1000), nullable=False
+    )
+    is_rejected: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=None
+    )
+    is_active: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=True
+    )
 
     client = sa.orm.relationship(
         "DeveloperApplication",
@@ -203,27 +234,27 @@ class Developer_oAuth1Server_TokenRequest(Base):
     )
 
     @property
-    def realms(self):
+    def realms(self) -> List[str]:
         """oauthlib wants to READONLY an array of realms, the db wants a string"""
         return self._realms.split(" ")
 
     @property
-    def client_key(self):
+    def client_key(self) -> str:
         """oauthlib wants a `client_key` available on the token"""
         return self.client.app_keyset_active.consumer_key
 
     @property
-    def token(self):
+    def token(self) -> str:
         """oauthlib wants a `token`, but we want to store 'oauth_token`"""
         return self.oauth_token
 
     @property
-    def secret(self):
+    def secret(self) -> str:
         """oauthlib wants a `secret`, but we want to store 'oauth_token_secret`"""
         return self.oauth_token_secret
 
     @property
-    def verifier(self):
+    def verifier(self) -> Optional[str]:
         """oauthlib wants a `verifier`, but we want to store 'oauth_verifier`"""
         return self.oauth_verifier
 
@@ -243,14 +274,16 @@ class Developer_oAuth1Server_Nonce(Base):
     """
 
     __tablename__ = "developer__oauth1_server__nonce"
-    id = sa.Column(sa.Integer, primary_key=True)
-    timestamp_created = sa.Column(sa.Integer, nullable=False)
-    nonce = sa.Column(sa.Unicode(40), nullable=False)
-    developer_application_id = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.Integer, nullable=False
+    )
+    nonce: Mapped[str] = mapped_column(sa.Unicode(40), nullable=False)
+    developer_application_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("developer_application.id"), nullable=False
     )
-    request_token = sa.Column(sa.Unicode(64), nullable=True)
-    access_token = sa.Column(sa.Unicode(64), nullable=True)
+    request_token: Mapped[Optional[str]] = mapped_column(sa.Unicode(64), nullable=True)
+    access_token: Mapped[Optional[str]] = mapped_column(sa.Unicode(64), nullable=True)
 
     client = sa.orm.relationship(
         "DeveloperApplication",
@@ -259,12 +292,12 @@ class Developer_oAuth1Server_Nonce(Base):
     )
 
     @property
-    def timestamp(self):
+    def timestamp(self) -> datetime.datetime:
         """oauthlib wants `timestamp`"""
         return self.timestamp_created
 
     @property
-    def client_key(self):
+    def client_key(self) -> str:
         """
         oauthlib wants a `client_key` available on the token
         this could be mapped via a sqlalchemy AssociationProxy
@@ -287,21 +320,29 @@ class Developer_oAuth1Server_TokenAccess(Base):
     """
 
     __tablename__ = "developer__oauth1_server__token_access"
-    id = sa.Column(sa.Integer, primary_key=True)
-    oauth_token = sa.Column(sa.Unicode(1000), nullable=False)
-    oauth_token_secret = sa.Column(sa.Unicode(1000), nullable=False)
-    _realms = sa.Column(sa.Unicode(255), nullable=False)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    token_type = sa.Column(sa.Unicode(32), nullable=False, default="bearer")
-    developer_application_id = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    oauth_token: Mapped[str] = mapped_column(sa.Unicode(1000), nullable=False)
+    oauth_token_secret: Mapped[str] = mapped_column(sa.Unicode(1000), nullable=False)
+    _realms: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    token_type: Mapped[str] = mapped_column(
+        sa.Unicode(32), nullable=False, default="bearer"
+    )
+    developer_application_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("developer_application.id"), nullable=False
     )
-    useraccount_id = sa.Column(
+    useraccount_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("useraccount.id"), nullable=False
     )
-    oauth_version = sa.Column(sa.Unicode(5), nullable=False, default="1")
-    timestamp_expired = sa.Column(sa.Integer, nullable=True)
-    is_active = sa.Column(sa.Boolean, nullable=True, default=True)
+    oauth_version: Mapped[str] = mapped_column(
+        sa.Unicode(5), nullable=False, default="1"
+    )
+    timestamp_expired: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
+    is_active: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=True
+    )
 
     client = sa.orm.relationship(
         "DeveloperApplication",
@@ -316,17 +357,17 @@ class Developer_oAuth1Server_TokenAccess(Base):
     )
 
     @property
-    def token(self):
+    def token(self) -> str:
         """oauthlib wants a `token`, but we want to store 'oauth_token`"""
         return self.oauth_token
 
     @property
-    def secret(self):
+    def secret(self) -> str:
         """oauthlib wants a `secret`, but we want to store 'oauth_token_secret`"""
         return self.oauth_token_secret
 
     @property
-    def realms(self):
+    def realms(self) -> List[str]:
         """oauthlib wants a list"""
         return self._realms.split(" ")
 
@@ -337,30 +378,38 @@ class Developer_oAuth1Client_TokenAccess(Base):
     """
 
     __tablename__ = "developer__oauth1_client__token_access"
-    id = sa.Column(sa.Integer, primary_key=True)
-    developer_application_id = sa.Column(
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    developer_application_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("developer_application.id"), nullable=False
     )
-    useraccount_id = sa.Column(
+    useraccount_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("useraccount.id"), nullable=False
     )
 
-    oauth_token = sa.Column(sa.Unicode(1000), nullable=False)
-    oauth_token_secret = sa.Column(sa.Unicode(1000), nullable=False)
-    _realms = sa.Column(sa.Unicode(255), nullable=False)
-    timestamp_created = sa.Column(sa.DateTime, nullable=False)
-    token_type = sa.Column(sa.Unicode(32), nullable=False, default="bearer")
-    oauth_version = sa.Column(sa.Unicode(5), nullable=False, default="1")
-    timestamp_expired = sa.Column(sa.Integer, nullable=True)
-    is_active = sa.Column(sa.Boolean, nullable=True, default=True)
+    oauth_token: Mapped[str] = mapped_column(sa.Unicode(1000), nullable=False)
+    oauth_token_secret: Mapped[str] = mapped_column(sa.Unicode(1000), nullable=False)
+    _realms: Mapped[str] = mapped_column(sa.Unicode(255), nullable=False)
+    timestamp_created: Mapped[datetime.datetime] = mapped_column(
+        sa.DateTime, nullable=False
+    )
+    token_type: Mapped[str] = mapped_column(
+        sa.Unicode(32), nullable=False, default="bearer"
+    )
+    oauth_version: Mapped[str] = mapped_column(
+        sa.Unicode(5), nullable=False, default="1"
+    )
+    timestamp_expired: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
+    is_active: Mapped[Optional[bool]] = mapped_column(
+        sa.Boolean, nullable=True, default=True
+    )
 
     @property
-    def realms(self):
+    def realms(self) -> List[str]:
         """oauthlib wants to READONLY an array of realms, the db wants a string"""
         return self._realms.split(" ")
 
 
-def initialize(engine, session):
+def initialize(engine: "Engine", session: "Session"):
     Base.metadata.create_all(engine)
 
     # insert users
@@ -391,6 +440,6 @@ def initialize(engine, session):
     keyset.consumer_secret = OAUTH1__APP_SECRET
     session.add(keyset)
 
-    app.keyset = keyset
+    app.app_keyset_active = keyset
     session.flush()
     session.commit()
