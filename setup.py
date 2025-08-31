@@ -61,10 +61,8 @@ setup(
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
         "Programming Language :: Python :: 3.13",
-        "License :: OSI Approved :: BSD License",
     ],
     keywords="web pyramid oauth oauthlib",
-    py_modules=["pyramid_oauthlib_lowlevel"],
     license="BSD",
     packages=find_packages(
         where="src",
