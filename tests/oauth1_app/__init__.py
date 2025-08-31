@@ -1,6 +1,7 @@
 """
 fake app for tests
 """
+
 # stdlib
 import datetime
 import logging
@@ -94,9 +95,11 @@ def main(global_config: "Configurator", **settings):
         lambda request: datetime.datetime.utcnow(), "timestamp", reify=True
     )
     config.add_request_method(
-        lambda request: request.session["active_useraccount_id"]
-        if "active_useraccount_id" in request.session
-        else None,
+        lambda request: (
+            request.session["active_useraccount_id"]
+            if "active_useraccount_id" in request.session
+            else None
+        ),
         "active_useraccount_id",
         reify=False,
         property=True,

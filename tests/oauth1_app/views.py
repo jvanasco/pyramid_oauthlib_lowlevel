@@ -1,6 +1,7 @@
 """
 fake app for tests
 """
+
 # stdlib
 import logging
 import os
@@ -225,7 +226,7 @@ class Authority_Oauth1_FlowShared_API_Public(Handler):
                 csrf_token=get_csrf_token(self.request),
             )
             if not result:
-                raise formhandling.FormInvalid()
+                raise formhandling.FormInvalid(formStash)
 
             if formStash.results["submit"] == "deny":
                 # process deny
@@ -376,9 +377,9 @@ class ExampleApp_FlowRegister(Handler):
             self.request.session["3rdparty-app_oauth"]["oauth_token"] = auth_props[
                 "oauth_token"
             ]
-            self.request.session["3rdparty-app_oauth"][
-                "oauth_token_secret"
-            ] = auth_props["oauth_token_secret"]
+            self.request.session["3rdparty-app_oauth"]["oauth_token_secret"] = (
+                auth_props["oauth_token_secret"]
+            )
             redirect_url = auth_props["auth_url"]
             return HTTPSeeOther(location=redirect_url)
 

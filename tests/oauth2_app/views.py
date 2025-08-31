@@ -193,7 +193,7 @@ class Authority_Oauth2_FlowA_API_Public(Handler):
                         csrf_token=get_csrf_token(self.request),
                     )
                     if not result:
-                        raise formhandling.FormInvalid()
+                        raise formhandling.FormInvalid(formStash)
 
                     if formStash.results["submit"] == "deny":
                         # process deny
@@ -447,10 +447,10 @@ class ExampleApp_User_AccountViews(Handler):
         }
 
         # sending the client auth params is not required by spec, but is required by oauthlib2
-        extra = {"client_id": OAUTH2__APP_KEY, "client_secret": OAUTH2__APP_SECRET}
         sess = OAuth2Session(client_id=OAUTH2__APP_KEY, token=token_dict)
         newToken_dict = sess.refresh_token(
-            oauth2_utils.OAUTH2__URL_AUTHORITY_FLOWA_TOKEN, **extra
+            oauth2_utils.OAUTH2__URL_AUTHORITY_FLOWA_TOKEN,
+            client_id=OAUTH2__APP_KEY,
         )
         if not isinstance(newToken_dict, OAuth2Token):
             raise ValueError("did not load an `OAuth2Token``")
@@ -565,10 +565,10 @@ class ExampleApp_User_AccountViews(Handler):
         }
 
         # sending the client auth params is not required by spec, but is required by oauthlib2
-        extra = {"client_id": OAUTH2__APP_KEY, "client_secret": OAUTH2__APP_SECRET}
         sess = OAuth2Session(client_id=OAUTH2__APP_KEY, token=token_dict)
         newToken_dict = sess.refresh_token(
-            oauth2_utils.OAUTH2__URL_AUTHORITY_FLOWA_TOKEN, **extra
+            oauth2_utils.OAUTH2__URL_AUTHORITY_FLOWA_TOKEN,
+            client_id=OAUTH2__APP_KEY,
         )
         if not isinstance(newToken_dict, OAuth2Token):
             raise ValueError("did not load an `OAuth2Token``")
@@ -743,7 +743,7 @@ class ExampleApp_FlowRegister(Handler):
             )
             resp = sess.fetch_token(
                 oauth2_utils.OAUTH2__URL_AUTHORITY_FLOWA_TOKEN,
-                client_id=OAUTH2__APP_KEY,
+                include_client_id=True,
                 client_secret=OAUTH2__APP_SECRET,
                 authorization_response=self.request.current_route_url(),
             )

@@ -13,7 +13,7 @@ import webtest
 import webtest.app
 
 if TYPE_CHECKING:
-    from pyramid_sqlassist.interface import _TYPES_SESSION
+    from pyramid_sqlassist.interface import TYPES_SESSION
 
 
 # ==============================================================================
@@ -37,7 +37,7 @@ class FakeRequest(object):
     _method: Optional[str] = None
     _post: Optional[Dict] = None
     active_useraccount_id: Optional[int] = None
-    dbSession: Optional["_TYPES_SESSION"] = None
+    dbSession: Optional["TYPES_SESSION"] = None
     timestamp: Optional[datetime.datetime] = None
     registry: FakeRegistry
     headers: Union[Dict, List]
