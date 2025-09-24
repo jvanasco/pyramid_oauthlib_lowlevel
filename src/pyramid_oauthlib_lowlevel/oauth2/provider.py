@@ -28,11 +28,11 @@ from ..utils import create_response
 from ..utils import extract_params
 from ..utils import TYPES_RESPONSE
 
-# from .. import utils
-# from .errors import MiscellaneousOAuth2Error
-
 if TYPE_CHECKING:
     from pyramid.request import Request as Pyramid_Request
+
+# from .. import utils
+# from .errors import MiscellaneousOAuth2Error
 
 DEBUG_LOGIC = bool(int(os.getenv("PYRAMID_OAUTHLIB_LOWLEVEL__DEBUG_LOGIC", 0)))
 log = logging.getLogger(__name__)

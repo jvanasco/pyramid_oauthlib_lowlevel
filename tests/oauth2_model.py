@@ -26,6 +26,7 @@ The following will refer to the model elements as `Object(tablename)`
 
 
 """
+
 # stdlib
 import datetime
 from typing import List

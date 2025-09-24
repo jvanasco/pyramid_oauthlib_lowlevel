@@ -1,5 +1,6 @@
 """pyramid_oauthlib_lowlevel installation script.
 """
+
 import os
 import re
 
@@ -19,14 +20,14 @@ with open(
     VERSION = re.compile(r'.*__VERSION__ = "(.*?)"', re.S).match(v_file.read()).group(1)
 
 requires = [
-    "oauthlib",
+    "oauthlib>=3.2.2",
     "pyramid",
-    "requests_oauthlib",
+    "requests_oauthlib>=2.0.0",
     "requests",
     "typing_extensions",  # needed for Literal on 3.7
 ]
 tests_require = [
-    "pyramid_formencode_classic",
+    "pyramid_formencode_classic>=0.10.0",
     "pyramid_mako",
     "pyramid_tm",
     "pyramid",
@@ -59,10 +60,9 @@ setup(
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
-        "License :: OSI Approved :: BSD License",
+        "Programming Language :: Python :: 3.13",
     ],
     keywords="web pyramid oauth oauthlib",
-    py_modules=["pyramid_oauthlib_lowlevel"],
     license="BSD",
     packages=find_packages(
         where="src",

@@ -5,6 +5,7 @@ from typing import Any
 from typing import Dict
 from typing import Optional
 from typing import TYPE_CHECKING
+from typing import Union
 from urllib.parse import parse_qsl
 from urllib.parse import urlencode
 
@@ -127,7 +128,7 @@ class ApiClient(object):
         # If no keys/tokens are passed to __init__, auth=None allows for
         # unauthenticated requests, although I think all v1.1 requests
         # need auth
-        auth = None
+        auth: Optional[Union[OAuth1, OAuth2]] = None
         if oauth_version == 1:
             # User Authentication is through OAuth 1
             if (
@@ -358,11 +359,12 @@ class ApiClient(object):
             # requests/iso-http-spec defaults to latin-1 if no encoding is present
             # we know this is utf-8 because of the oauth spec
             # so we force utf-8 here off the .content
-            content_str = response.content.decode("utf-8")
             try:
-                content_dict = content_str.json()  # type: ignore[attr-defined]
-            except AttributeError:
+                content_str = response.content.decode("utf-8")
                 content_dict = json.loads(content_str)
+            except AttributeError:
+                # could this even happen?
+                content_dict = response.json()
 
             # _bearer_token = content["access_token"]
             _token_type = content_dict["token_type"]
