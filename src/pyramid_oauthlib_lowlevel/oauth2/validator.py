@@ -13,7 +13,6 @@ from typing import TYPE_CHECKING
 # pypi
 from oauthlib.common import Request as oAuth_Request
 from oauthlib.oauth2.rfc6749.errors import InvalidClientIdError
-from oauthlib.oauth2.rfc6749.errors import InvalidRequestError
 from oauthlib.oauth2.rfc6749.request_validator import RequestValidator
 from pyramid.authentication import extract_http_basic_credentials
 from pyramid.authentication import HTTPBasicCredentials
@@ -137,7 +136,10 @@ class OAuth2RequestValidator_Hooks(object):
 
     def grant_getter(self, client_id: str, code: str, *args, **kwargs) -> Optional[Any]:
         """
-        A method to load a grant.
+        Load an active grant scoped to the supplied client and code.
+
+        When the grant exposes a client_id, the validator also checks it
+        against the requested client.
 
         :param client_id: Unicode client identifier
         :param code: Unicode authorization_code
@@ -266,8 +268,12 @@ class OAuth2RequestValidator_Hooks(object):
 
 
 class OAuth2RequestValidator(RequestValidator):
-    """
-    Validator Integration
+    """Connect OAuthlib's base OAuth2 validator to Pyramid application hooks.
+
+    OAuthlib defines get_authorization_code_scopes, get_jwt_bearer_token,
+    validate_jwt_bearer_token, get_id_token, and validate_id_token on its
+    OpenID Connect validator (oauthlib.openid.connect.core.RequestValidator).
+    They apply to integrations that use the OpenID Connect endpoints.
     """
 
     pyramid_request: Pyramid_Request
@@ -366,7 +372,7 @@ class OAuth2RequestValidator(RequestValidator):
         .. _`Section 6`: http://tools.ietf.org/html/rfc6749#section-6
         """
 
-        def is_confidential(client):
+        def is_confidential(client: Any) -> bool:
             if hasattr(client, "is_confidential"):
                 return client.is_confidential
             client_type = getattr(client, "client_type", None)
@@ -376,7 +382,9 @@ class OAuth2RequestValidator(RequestValidator):
 
         grant_types = ("password", "authorization_code", "refresh_token")
         client_id, _ = self._get_client_creds_from_request(request)
-        if client_id and request.grant_type in grant_types:
+        # OAuthlib also calls this hook for revocation requests, which carry
+        # a token parameter and have no grant type.
+        if client_id and (request.token is not None or request.grant_type in grant_types):
             client = self._api_hooks.client_getter(client_id)
             if client:
                 return is_confidential(client)
@@ -439,6 +447,13 @@ class OAuth2RequestValidator(RequestValidator):
         request.client = client
         return True
 
+    def _get_client_grant(self, client_id: str, code: str) -> Optional[Any]:
+        """Load a grant and verify its owner when the backend exposes one."""
+        grant = self._api_hooks.grant_getter(client_id=client_id, code=code)
+        if grant and getattr(grant, "client_id", client_id) == client_id:
+            return grant
+        return None
+
     def confirm_redirect_uri(
         self, client_id: str, code: str, redirect_uri: str, client, *args, **kwargs
     ) -> bool:
@@ -461,10 +476,10 @@ class OAuth2RequestValidator(RequestValidator):
             - Authorization Code Grant (during token request)
         """
         client = client or self._api_hooks.client_getter(client_id)
-        log.debug(
-            "Confirm redirect uri for client %r and code %r.", client.client_id, code
-        )
-        grant = self._api_hooks.grant_getter(client_id=client.client_id, code=code)
+        if not client or client.client_id != client_id:
+            return False
+        log.debug("Confirm redirect URI for client %r", client.client_id)
+        grant = self._get_client_grant(client_id, code)
         if not grant:
             log.debug("Grant not found.")
             return False
@@ -472,16 +487,7 @@ class OAuth2RequestValidator(RequestValidator):
             hasattr(grant, "validate_redirect_uri") and grant.validate_redirect_uri
         ):  # ensure it is defined
             return grant.validate_redirect_uri(redirect_uri)
-        log.debug(
-            "Compare redirect uri for grant %r and %r.",
-            grant.redirect_uri,
-            redirect_uri,
-        )
-
-        testing = "OAUTHLIB_INSECURE_TRANSPORT" in os.environ
-        if testing and redirect_uri is None:
-            # For testing
-            return True
+        log.debug("Compare redirect URI with stored grant")
 
         return grant.redirect_uri == redirect_uri
 
@@ -600,57 +606,46 @@ class OAuth2RequestValidator(RequestValidator):
         Method is used by:
             - Authorization Code Grant
         """
-        log.debug("Destroy grant token for client %r, %r", client_id, code)
-        grantObject = self._api_hooks.grant_getter(client_id=client_id, code=code)
+        log.debug("Destroy grant token for client %r", client_id)
+        grantObject = self._get_client_grant(client_id, code)
         if grantObject:
             self._api_hooks.grant_invalidate(grantObject)
 
     def revoke_token(
         self,
         token: str,
-        token_type_hint: str,
+        token_type_hint: Optional[str],
         request: oAuth_Request,
         *args,
         **kwargs,
     ) -> None:
         """
-        Revoke an access or refresh token.
+        Revoke an access or refresh token owned by the authenticated client.
 
-        :param token_str The token string.
-        :param token_type_hint: access_token or refresh_token.
+        :param token: The token string.
+        :param token_type_hint: The token type to search for first.
         :param request: The HTTP Request (oauthlib.common.Request)
 
         Method is used by:
             - Revocation Endpoint
         """
-        # TODO: `token` -> `token_str`
-        if DEBUG_LOGIC:
-            print(">> OAuth2RequestValidator.revoke_token")
-            print("  >>  .token", token)
-            print("  >>  .token_type_hint", token_type_hint)
-            print("  >>  .request", request, request.__dict__)
-        if token_type_hint:
-            _k = "%s_str" % token_type_hint
-            tokenObject = self._api_hooks.token_getter(
-                **{_k: token}, debug="revoke_token"
-            )
-        else:
-            # let's only do access here
-            tokenObject = self._api_hooks.token_getter(
-                access_token_str=token, debug="revoke_token"
-            )
-            # if not tokenObject:
-            #    tokenObject = self._api_hooks.token_getter(
-            #        refresh_token_str=token_str, debug="revoke_token"
-            #    )
-
-        if tokenObject:
-            request.client_id = tokenObject.client_id
-            request.user = tokenObject.user
-            self._api_hooks.token_revoke(tokenObject)
+        log.debug("Revoke token")
+        client_id = getattr(request.client, "client_id", None)
+        if not client_id:
             return
 
-        raise InvalidRequestError("Invalid token supplied.")
+        lookup_fields = ("access_token_str", "refresh_token_str")
+        if token_type_hint == "refresh_token":
+            lookup_fields = ("refresh_token_str", "access_token_str")
+        for field in lookup_fields:
+            token_object = self._api_hooks.token_getter(
+                **{field: token}, debug="revoke_token"
+            )
+            if token_object and token_object.client_id == client_id:
+                request.client_id = client_id
+                request.user = token_object.user
+                self._api_hooks.token_revoke(token_object)
+                return
 
     def rotate_refresh_token(self, request: oAuth_Request) -> bool:
         """
@@ -682,7 +677,7 @@ class OAuth2RequestValidator(RequestValidator):
         Method is used by:
             - Authorization Code Grant
         """
-        log.debug("Persist authorization code %r for client %r", code, client_id)
+        log.debug("Persist authorization code for client %r", client_id)
         request.client = request.client or self._api_hooks.client_getter(client_id)
         self._api_hooks.grant_setter(client_id, code, request, *args, **kwargs)
         return None
@@ -748,7 +743,7 @@ class OAuth2RequestValidator(RequestValidator):
             - Resource Owner Password Credentials Grant (might not associate a client)
             - Client Credentials grant
         """
-        log.debug("Save bearer token %r", token)
+        log.debug("Save bearer token")
         self._api_hooks.bearer_token_setter(token, request, *args, **kwargs)
         return request.client.default_redirect_uri
 
@@ -777,7 +772,7 @@ class OAuth2RequestValidator(RequestValidator):
             - Resource Owner Password Credentials Grant
             - Client Credentials Grant
         """
-        log.debug("Validate bearer token %r", token_str)
+        log.debug("Validate bearer token")
         tokenObject = self._api_hooks.token_getter(access_token_str=token_str)
         if not tokenObject:
             msg = "Bearer token not found."
@@ -794,7 +789,7 @@ class OAuth2RequestValidator(RequestValidator):
             return False
 
         # validate scopes
-        if scopes and not set(tokenObject.scopes) & set(scopes):
+        if scopes and not set(scopes).issubset(tokenObject.scopes):
             msg = "Bearer token scope not valid."
             log.debug(msg)
             return False
@@ -865,8 +860,10 @@ class OAuth2RequestValidator(RequestValidator):
             - Authorization Code Grant
         """
         client = client or self._api_hooks.client_getter(client_id)
-        log.debug("Validate code for client %r and code %r", client.client_id, code)
-        grant = self._api_hooks.grant_getter(client_id=client.client_id, code=code)
+        if not client or client.client_id != client_id:
+            return False
+        log.debug("Validate code for client %r", client.client_id)
+        grant = self._get_client_grant(client_id, code)
         if not grant:
             log.debug("Grant not found.")
             return False
@@ -995,6 +992,8 @@ class OAuth2RequestValidator(RequestValidator):
             - Authorization Code Grant
             - Implicit Grant
         """
+        if not client or not client.client_id:
+            return False
         tokenObject = self._api_hooks.token_getter(refresh_token_str=refresh_token)
         if tokenObject and tokenObject.client_id == client.client_id:
             # Make sure the request object contains user and client_id

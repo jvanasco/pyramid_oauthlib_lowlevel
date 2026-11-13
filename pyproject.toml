@@ -1,3 +1,31 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
 [tool.black]
 target-version = ['py37']
 
+
+[tool.mypy]
+check_untyped_defs = true
+exclude = '(?x)(^\.eggs/|^\.tox/|^build/)'
+
+[[tool.mypy.overrides]]
+module = [
+    "formencode.*",
+    "pyramid.*",
+    "requests_oauthlib.*",
+    "responses.*",
+    "transaction.*",
+    "webtest.*",
+    "zope.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest]
+[tool.pytest.ini_options]
+
+filterwarnings = [
+    'ignore:pkg_resources is deprecated as an API\.:UserWarning',
+    'ignore:Deprecated call to `pkg_resources\.declare_namespace:DeprecationWarning',
+]

@@ -278,7 +278,7 @@ class Developer_oAuth1Server_Nonce(Base):
     timestamp_created: Mapped[datetime.datetime] = mapped_column(
         sa.Integer, nullable=False
     )
-    nonce: Mapped[str] = mapped_column(sa.Unicode(40), nullable=False)
+    nonce: Mapped[str] = mapped_column(sa.Unicode(40), nullable=False, unique=True)
     developer_application_id: Mapped[int] = mapped_column(
         sa.Integer, sa.ForeignKey("developer_application.id"), nullable=False
     )

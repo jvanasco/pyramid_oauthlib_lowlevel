@@ -1,13 +1,25 @@
 TESTS
 =====
 
-tests are within the package
+Run the suite on the current Python interpreter from the repository root.
 
-please note: `pyramid_oauthlib_lowlevel.tests.oauth2_app` and  `pyramid_oauthlib_lowlevel.tests.oauth1_app` are both fully functional example oAuth applications. They each implement an Authority Server and Client Application Server.
+    python -m pip install -e '.[testing]'
+    python -m pytest
 
-while there are only 6 tests, each test is an oauth flow, and tests for success and expected failures.
+The example authority and client applications live in tests/oauth1_app and
+tests/oauth2_app. The suite exercises complete OAuth flows and focused
+regressions for nonce claims, scopes, redirects, and token ownership.
 
-there are some envrionment variables that can help control tests and application usage:
+To test an installed wheel with tox and generate HTML coverage, install
+tox 4 and select an interpreter environment. For example, with Python 3.14
+available, run:
+
+    python -m tox -e py314
+
+Open .tox/htmlcov-py314/index.html for the report. GitHub Actions publishes
+an HTML coverage artifact for each Python job.
+
+These environment variables enable additional test diagnostics.
 
 `export PYRAMID_OAUTHLIB_LOWLEVEL__PRINT_ERRORS=1`
 
@@ -28,6 +40,27 @@ Debug messages have an initial character indicating what file they are from:
     }  - tests/oauth2_utils.py
     >  - src/pyramid_oauthlib_lowlevel/oauth2/provider.py
     >> - src/pyramid_oauthlib_lowlevel/oauth2/validator.py
+
+
+OAuthlib compatibility for 1.0.0
+================================
+
+The six existing OAuth flow tests passed on Python 3.14.6 with OAuthlib
+3.2.2, 3.3.1, and 4.0.1 tested separately. The minimum remains 3.2.2.
+These runs validate the covered flows on Python 3.14.6.
+
+In a separate check of OAuthlib's default OAuth2 server, all three versions
+returned 400 unsupported_grant_type when grant_type was missing and
+401 invalid_client when client authentication was rejected for authorization
+code, refresh token, and password grants. OAuthlib 4 removed the JSONP
+revocation arguments. The standard revocation path in this package uses
+neither argument. Custom server integrations may depend on them.
+
+OAuthlib 4.0.1 ships without bundled type stubs or a py.typed marker.
+With types-oauthlib 4.0.0.20261107 installed, mypy resolved the OAuthlib
+imports and reported 24 remaining diagnostics. The stubs annotate the
+OAuth1 save_request_token and save_access_token token arguments as str,
+while OAuthlib passes dictionaries to those callbacks.
 
 
 FLAKE8

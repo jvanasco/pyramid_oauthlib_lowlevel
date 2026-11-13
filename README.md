@@ -13,7 +13,7 @@ What do I mean by highlevel vs lowlevel?
 
 highlevel: `pyramid-oauthlib` makes a lot of hard decisions for you, and gives you a handful of hooks to easily implement oAuth flows into your Pyramid application.  You don't need to know much about oAuth to utilize it.
 
-lowlevel: `pyramid-oauthlib-lowlevel` provides a very basic integration scheme for leveraging the oauthlib library in Pyramid applications.  You generally need to know quote a bit about oAuth to handle this.
+lowlevel: `pyramid-oauthlib-lowlevel` provides a very basic integration scheme for leveraging the oauthlib library in Pyramid applications.  You generally need to know quite a bit about oAuth to handle this.
 
 Some use-cases for this package are situations where:
 
@@ -66,43 +66,17 @@ Typically usage will involve these steps:
 * on a request, then invoke the desired endpoint or request validation.
 
 
-The Tests are Fully Functional Examples!
-========================================
+Example Applications
+====================
 
-The tests contain full example applications/servers and logic flows that iterate through different oAuth strategies.  For example, the oAuth2 test include (oAuth1 tests are identical):
+The [OAuth1](tests/oauth1_app) and [OAuth2](tests/oauth2_app) test applications
+show how to connect Pyramid endpoints to the providers and implement the
+storage hooks. The [OAuth1 flow](docs/oauth1/flow.md) walks through the
+request-token, authorization, and access-token exchange.
 
-* `tests.oauth2_app` defines a fully functional oAuth2 server which can be spun up
-* `tests.oauth2.PyramidTestApp` spins up a `tests.oauth2_app` instance, and uses that to make requests
-* `tests.oauth2.PyramidTestApp.test_valid_flow__get_access_token` tests a flow for obtaining a "bearer_token" from the oAuth2 server
-* `tests.oauth2_model` defines the persistence models (SqlAlchemy) used by unit tests and the test apps
-* `tests.oauth2_utils` defines the subclasses and utilities used for both the unit tests and test apps
-
-
-Supported Flows
-===============
-
-All oAuth flows will ideally be supported. PRs are very much welcome!
-
-Currently the supported flows are:
-
-* oAuth1 - Application Authorization - New Account Registration (see `tests.oauth1.PyramidTestApp.test_valid_flow__registration`)
-* oAuth2 - Application Authorization - New Account Registration (see `tests.oauth2.PyramidTestApp.test_valid_flow__registration`)
-* oAuth2 - Obtain Bearer Token (see `tests.oauth2.PyramidTestApp.test_valid_flow__get_access_token`)
-* oAuth2 - Refresh Token (see `tests.oauth2.PyramidTestApp.test_valid_flow__registration`)
-* oAuth2 - Revoke Token (see `tests.oauth2.PyramidTestApp.test_valid_flow__get_access_token`)
-
-Todo:
-
-* oAuth1 - Application Authorization - Bind Existing Account
-* oAuth2 - Application Authorization - Bind Existing Account
-
-Notes:
-
-* `New Account Registration` means a new account is established on `Application` for an existing user of `Authority`
-* `Bind Existing Account` means an existing user of `Application` with connect their account to their existing account on `Authority`
-
-These above elements both use the same oAuth flows and endpoints, they just integrate them slightly differently
-
+The integration tests cover OAuth1 authorization and OAuth2 authorization
+code, client credentials, refresh, and revocation. See [TESTING.txt](TESTING.txt)
+for test commands and the OAuthlib compatibility checks.
 
 Tutorial
 ===============
@@ -169,7 +143,7 @@ Here is a quick way to design an oAuth server:
 	_is_authorized, req = oauth1Provider.logic__is_authorized(['platform.actor', ])
 	if not _is_authorized:
 		raise HTTPUnauthorized(body="""'{"error": "Not Authorized (oAuth Failed)}'""", content_type='application/json')
-	# perhaps do something with `req.client` and `req.access_token`
+	# perhaps do something with `req.client` and `req.access_token_object`
 	
 	
 5. Use the oAuth object - routes for granting access
@@ -245,7 +219,7 @@ Some deployments will wish to recycle a `refresh_token` across multiple access_t
 			Method is used by:
 				- Refresh Token Grant
 			"""
-			return True
+			return False
 
 
 Both forms are covered in the test suite (the default is overridden by monkeypatching the Request Validator, then it is reset)
@@ -275,7 +249,29 @@ This strategy will allow you to easily differentiate between client_credential (
 Python Compatibility
 ====================
 
-`pyramid_oauthlib_lowlevel` is tested to run under Python2.7 and Python3.6+
+Version 1.0.0 supports Python 3.7 and later and requires OAuthlib 3.2.2
+or later. The test matrix covers Python 3.7 through 3.15. Maintaining
+legacy compatibility lets applications adopt these fixes on their existing
+Python and OAuthlib versions.
+
+Storage Hook Requirements
+=========================
+
+- **OAuth1 nonce claims.** The nonce setter must claim the nonce atomically in
+  shared storage, using the same identity as the getter. Return `False`
+  when the claim is rejected. Successful legacy setters may still return
+  `None`. See [OAuth1 nonce storage](docs/oauth1/flow.md#nonce-storage).
+- **OAuth2 grants.** Look up active authorization codes by both client ID
+  and code. If the returned grant exposes `client_id`, the validator checks
+  it against the requested client. Refresh-token records must expose their
+  issuing client's ID.
+- **OAuth2 tokens.** Return only active tokens from storage. A bearer token
+  must include every scope required by the resource. The revocation hook
+  receives a token owned by the requesting client and must make it
+  unavailable to subsequent lookups.
+
+`OAuth2RequestValidator` integrates OAuthlib's base OAuth2 validator. OAuthlib
+defines its OpenID Connect-specific hooks on its OpenID Connect validator.
 
 License
 =======

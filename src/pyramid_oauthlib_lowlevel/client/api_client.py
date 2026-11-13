@@ -372,10 +372,7 @@ class ApiClient(object):
                 raise ValueError()
 
         except (KeyError, ValueError, requests.exceptions.RequestException) as ex_og:
-            log.debug(
-                "Exception `%s` in `obtain_access_token`: %s" % (type(ex_og), ex_og)
-            )
-            log.debug(content_str)
+            log.debug("Token request failed (%s)", type(ex_og).__name__)
             ex = ApiAuthError("Unable to obtain OAuth 2 access token.")
             ex.original_exception = ex_og
             ex.original_response = response
