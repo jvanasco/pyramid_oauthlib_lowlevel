@@ -1,3 +1,10 @@
+1.0.0
+    * Consolidate package metadata and tox configuration in setup.cfg and
+      move mypy settings to pyproject.toml.
+    * Add Python 3.14 and 3.15 to the test matrix and publish HTML coverage.
+    * Preserve Pyramid compatibility on Python 3.7–3.9 with setuptools<82.
+    * Use the Black pre-commit mirror.
+
 0.5.0
     * some typing and codeqa changes
     * py313
