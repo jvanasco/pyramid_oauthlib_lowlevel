@@ -13,7 +13,6 @@ from typing import TYPE_CHECKING
 # pypi
 from oauthlib.common import Request as oAuth_Request
 from oauthlib.oauth2.rfc6749.errors import InvalidClientIdError
-from oauthlib.oauth2.rfc6749.errors import InvalidRequestError
 from oauthlib.oauth2.rfc6749.request_validator import RequestValidator
 from pyramid.authentication import extract_http_basic_credentials
 from pyramid.authentication import HTTPBasicCredentials
@@ -370,7 +369,7 @@ class OAuth2RequestValidator(RequestValidator):
         .. _`Section 6`: http://tools.ietf.org/html/rfc6749#section-6
         """
 
-        def is_confidential(client):
+        def is_confidential(client: Any) -> bool:
             if hasattr(client, "is_confidential"):
                 return client.is_confidential
             client_type = getattr(client, "client_type", None)
@@ -380,7 +379,9 @@ class OAuth2RequestValidator(RequestValidator):
 
         grant_types = ("password", "authorization_code", "refresh_token")
         client_id, _ = self._get_client_creds_from_request(request)
-        if client_id and request.grant_type in grant_types:
+        # OAuthlib also calls this hook for revocation requests, which carry
+        # a token parameter and have no grant type.
+        if client_id and (request.token is not None or request.grant_type in grant_types):
             client = self._api_hooks.client_getter(client_id)
             if client:
                 return is_confidential(client)
@@ -606,45 +607,38 @@ class OAuth2RequestValidator(RequestValidator):
     def revoke_token(
         self,
         token: str,
-        token_type_hint: str,
+        token_type_hint: Optional[str],
         request: oAuth_Request,
         *args,
         **kwargs,
     ) -> None:
         """
-        Revoke an access or refresh token.
+        Revoke an access or refresh token owned by the authenticated client.
 
-        :param token_str The token string.
-        :param token_type_hint: access_token or refresh_token.
+        :param token: The token string.
+        :param token_type_hint: The token type to search for first.
         :param request: The HTTP Request (oauthlib.common.Request)
 
         Method is used by:
             - Revocation Endpoint
         """
-        # TODO: `token` -> `token_str`
         log.debug("Revoke token")
-        if token_type_hint:
-            _k = "%s_str" % token_type_hint
-            tokenObject = self._api_hooks.token_getter(
-                **{_k: token}, debug="revoke_token"
-            )
-        else:
-            # let's only do access here
-            tokenObject = self._api_hooks.token_getter(
-                access_token_str=token, debug="revoke_token"
-            )
-            # if not tokenObject:
-            #    tokenObject = self._api_hooks.token_getter(
-            #        refresh_token_str=token_str, debug="revoke_token"
-            #    )
-
-        if tokenObject:
-            request.client_id = tokenObject.client_id
-            request.user = tokenObject.user
-            self._api_hooks.token_revoke(tokenObject)
+        client_id = getattr(request.client, "client_id", None)
+        if not client_id:
             return
 
-        raise InvalidRequestError("Invalid token supplied.")
+        lookup_fields = ("access_token_str", "refresh_token_str")
+        if token_type_hint == "refresh_token":
+            lookup_fields = ("refresh_token_str", "access_token_str")
+        for field in lookup_fields:
+            token_object = self._api_hooks.token_getter(
+                **{field: token}, debug="revoke_token"
+            )
+            if token_object and token_object.client_id == client_id:
+                request.client_id = client_id
+                request.user = token_object.user
+                self._api_hooks.token_revoke(token_object)
+                return
 
     def rotate_refresh_token(self, request: oAuth_Request) -> bool:
         """

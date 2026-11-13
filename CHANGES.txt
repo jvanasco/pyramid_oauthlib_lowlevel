@@ -11,6 +11,9 @@
     * Require bearer tokens to include every scope required by the resource.
     * Remove OAuth credentials from diagnostic output and use a generic
       server_error for unexpected OAuth2 endpoint failures.
+    * Require confidential client authentication and enforce token ownership
+      during OAuth2 revocation. Search both token types when needed and return
+      success for tokens unavailable to the requesting client.
 
 0.5.0
     * some typing and codeqa changes
