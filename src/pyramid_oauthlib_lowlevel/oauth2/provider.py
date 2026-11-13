@@ -131,9 +131,6 @@ class OAuth2Provider(object):
 
         validity: Dict = {}
         if http_method in ("GET", "HEAD"):
-            redirect_uri = self.pyramid_request.params.get(
-                "redirect_uri", self.error_uri
-            )
             try:
                 ret = self.server.validate_authorization_request(
                     uri, http_method, body, headers
@@ -147,12 +144,8 @@ class OAuth2Provider(object):
                 raise HTTPFound(exc.in_uri(self.error_uri))
 
             except oauth2.OAuth2Error as exc:
-                log.debug(
-                    "endpoint__validate_authorization_request GET:HEAD | OAuth2Error: %r",
-                    exc,
-                    exc_info=True,
-                )
-                raise HTTPFound(exc.in_uri(redirect_uri))
+                log.debug("Authorization validation rejected")
+                raise HTTPFound(self._authorization_error_uri(exc)) from None
 
             except Exception as exc:
                 log.error("Authorization validation failed (%s)", type(exc).__name__)
@@ -187,8 +180,6 @@ class OAuth2Provider(object):
             response_type=params_source.get("response_type", None),
             state=params_source.get("state", None),
         )
-        redirect_uri = credentials.get("redirect_uri")
-
         uri, http_method, body, headers = extract_params(self.pyramid_request)
         try:
             ret = self.server.create_authorization_response(
@@ -204,14 +195,28 @@ class OAuth2Provider(object):
 
         except oauth2.OAuth2Error as exc:
             log.debug("Authorization confirmation rejected: OAuth2Error")
-            # return redirect(exc.in_uri(redirect_uri or self.error_uri))
-            return HTTPSeeOther(exc.in_uri(redirect_uri or self.error_uri))
+            return HTTPSeeOther(self._authorization_error_uri(exc))
 
         except Exception as exc:
             log.error("Authorization confirmation failed (%s)", type(exc).__name__)
             return HTTPSeeOther(
                 add_params_to_uri(self.error_uri, {"error": "server_error"})
             )
+
+    def _authorization_error_uri(self, error: oauth2.OAuth2Error) -> str:
+        """Send an authorization error only to a verified client destination."""
+        if error.client_id and error.redirect_uri:
+            request = oAuth_Request("https://localhost/")
+            try:
+                if self._validator.validate_client_id(
+                    error.client_id, request
+                ) and self._validator.validate_redirect_uri(
+                    error.client_id, error.redirect_uri, request
+                ):
+                    return error.in_uri(error.redirect_uri)
+            except Exception as exc:
+                log.error("Error redirect validation failed (%s)", type(exc).__name__)
+        return error.in_uri(self.error_uri)
 
     def endopoint__token(self, credentials=None) -> TYPES_RESPONSE:
         """

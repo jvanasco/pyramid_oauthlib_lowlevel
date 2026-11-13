@@ -136,7 +136,10 @@ class OAuth2RequestValidator_Hooks(object):
 
     def grant_getter(self, client_id: str, code: str, *args, **kwargs) -> Optional[Any]:
         """
-        A method to load a grant.
+        Load an active grant scoped to the supplied client and code.
+
+        When the grant exposes a client_id, the validator also checks it
+        against the requested client.
 
         :param client_id: Unicode client identifier
         :param code: Unicode authorization_code
@@ -444,6 +447,13 @@ class OAuth2RequestValidator(RequestValidator):
         request.client = client
         return True
 
+    def _get_client_grant(self, client_id: str, code: str) -> Optional[Any]:
+        """Load a grant and verify its owner when the backend exposes one."""
+        grant = self._api_hooks.grant_getter(client_id=client_id, code=code)
+        if grant and getattr(grant, "client_id", client_id) == client_id:
+            return grant
+        return None
+
     def confirm_redirect_uri(
         self, client_id: str, code: str, redirect_uri: str, client, *args, **kwargs
     ) -> bool:
@@ -466,8 +476,10 @@ class OAuth2RequestValidator(RequestValidator):
             - Authorization Code Grant (during token request)
         """
         client = client or self._api_hooks.client_getter(client_id)
+        if not client or client.client_id != client_id:
+            return False
         log.debug("Confirm redirect URI for client %r", client.client_id)
-        grant = self._api_hooks.grant_getter(client_id=client.client_id, code=code)
+        grant = self._get_client_grant(client_id, code)
         if not grant:
             log.debug("Grant not found.")
             return False
@@ -476,11 +488,6 @@ class OAuth2RequestValidator(RequestValidator):
         ):  # ensure it is defined
             return grant.validate_redirect_uri(redirect_uri)
         log.debug("Compare redirect URI with stored grant")
-
-        testing = "OAUTHLIB_INSECURE_TRANSPORT" in os.environ
-        if testing and redirect_uri is None:
-            # For testing
-            return True
 
         return grant.redirect_uri == redirect_uri
 
@@ -600,7 +607,7 @@ class OAuth2RequestValidator(RequestValidator):
             - Authorization Code Grant
         """
         log.debug("Destroy grant token for client %r", client_id)
-        grantObject = self._api_hooks.grant_getter(client_id=client_id, code=code)
+        grantObject = self._get_client_grant(client_id, code)
         if grantObject:
             self._api_hooks.grant_invalidate(grantObject)
 
@@ -853,8 +860,10 @@ class OAuth2RequestValidator(RequestValidator):
             - Authorization Code Grant
         """
         client = client or self._api_hooks.client_getter(client_id)
+        if not client or client.client_id != client_id:
+            return False
         log.debug("Validate code for client %r", client.client_id)
-        grant = self._api_hooks.grant_getter(client_id=client.client_id, code=code)
+        grant = self._get_client_grant(client_id, code)
         if not grant:
             log.debug("Grant not found.")
             return False
@@ -983,6 +992,8 @@ class OAuth2RequestValidator(RequestValidator):
             - Authorization Code Grant
             - Implicit Grant
         """
+        if not client or not client.client_id:
+            return False
         tokenObject = self._api_hooks.token_getter(refresh_token_str=refresh_token)
         if tokenObject and tokenObject.client_id == client.client_id:
             # Make sure the request object contains user and client_id

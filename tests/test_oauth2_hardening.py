@@ -3,9 +3,11 @@ from base64 import b64encode
 from types import SimpleNamespace
 from typing import List, Optional
 from unittest.mock import Mock
+from urllib.parse import urlsplit
 
 from oauthlib.common import Request
 from oauthlib.oauth2 import InvalidRequestError
+from pyramid.httpexceptions import HTTPFound
 import pytest
 
 from pyramid_oauthlib_lowlevel.oauth2.provider import OAuth2Provider
@@ -140,3 +142,65 @@ def test_revocation_authenticates_client_and_checks_ownership(
         hooks.token_revoke.assert_not_called()
         if status == 401:
             hooks.token_getter.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "destination", ["https://client.invalid/callback", "https://other.invalid/"]
+)
+@pytest.mark.parametrize("confirm", [False, True])
+def test_authorization_error_redirect_validates_destination(
+    destination: str, confirm: bool
+) -> None:
+    """Redirect raised protocol errors only to a registered client URI."""
+    hooks = Mock()
+    registered = "https://client.invalid/callback"
+    hooks.client_getter.return_value = SimpleNamespace(
+        client_id="client", redirect_uris=[registered]
+    )
+    incoming = Mock(method="GET", headers={}, POST={}, params={})
+    incoming.current_route_url.return_value = "https://authority.invalid/authorize"
+    provider = OAuth2Provider(
+        incoming, hooks, OAuth2RequestValidator, server_class=Mock()
+    )
+    oauth_request = Request("https://authority.invalid/authorize")
+    oauth_request.client_id = "client"
+    oauth_request.redirect_uri = destination
+    error = InvalidRequestError(request=oauth_request)
+    if confirm:
+        provider.server.create_authorization_response.side_effect = error
+        location = provider.endpoint__confirm_authorization_request().location
+    else:
+        provider.server.validate_authorization_request.side_effect = error
+        with pytest.raises(HTTPFound) as response:
+            provider.endpoint__validate_authorization_request()
+        location = response.value.location
+    expected = registered if destination == registered else "/error"
+    assert urlsplit(location)._replace(query="", fragment="").geturl() == expected
+    assert urlsplit(location).query.startswith("error=invalid_request")
+
+
+@pytest.mark.parametrize("owner", ["client", "other-client"])
+def test_grant_and_refresh_token_require_issuing_client(owner: str) -> None:
+    """Enforce ownership even when a storage hook returns another client's grant."""
+    hooks = Mock()
+    validator = OAuth2RequestValidator(Mock(registry=Mock(settings={})), hooks)
+    client = SimpleNamespace(client_id="client")
+    request = Request("https://authority.invalid/token")
+    redirect_uri = "https://client.invalid/callback"
+    grant = SimpleNamespace(
+        client_id=owner, redirect_uri=redirect_uri, user=object(), scopes=["read"]
+    )
+    hooks.grant_getter.return_value = grant
+    hooks.token_getter.return_value = grant
+    allowed = owner == "client"
+    assert validator.validate_code("client", "code", client, request) is allowed
+    assert (
+        validator.confirm_redirect_uri("client", "code", redirect_uri, client)
+        is allowed
+    )
+    assert validator.validate_refresh_token("refresh", client, request) is allowed
+    validator.invalidate_authorization_code("client", "code", request)
+    if allowed:
+        hooks.grant_invalidate.assert_called_once_with(grant)
+    else:
+        hooks.grant_invalidate.assert_not_called()
