@@ -509,11 +509,7 @@ class OAuth1RequestValidator(RequestValidator):
 
         Note that the returned key must be in plaintext.
         """
-        log.debug(
-            "OAuth1RequestValidator.get_request_token_secret(%r, %r)",
-            client_key,
-            token_str,
-        )
+        log.debug("OAuth1RequestValidator.get_request_token_secret")
         tok = self._get_RequestTokenObject(request, token_str, client_key=client_key)
         if tok and tok.client_key == client_key:
             return tok.secret
@@ -536,11 +532,7 @@ class OAuth1RequestValidator(RequestValidator):
 
         Note that the returned key must be in plaintext.
         """
-        log.debug(
-            "OAuth1RequestValidator.get_access_token_secret(%r, %r)",
-            client_key,
-            token_str,
-        )
+        log.debug("OAuth1RequestValidator.get_access_token_secret")
         tokenObject = (
             request.access_token_object
             or self._api_hooks.access_token_getter(
@@ -587,7 +579,7 @@ class OAuth1RequestValidator(RequestValidator):
 
         :returns: The list of realms associated with the request token.
         """
-        log.debug("OAuth1RequestValidator.get_realms(%r)", token_str)
+        log.debug("OAuth1RequestValidator.get_realms")
         tokenObj = self._get_RequestTokenObject(request, token_str)
         if not tokenObj:
             return []
@@ -608,7 +600,7 @@ class OAuth1RequestValidator(RequestValidator):
 
         :returns: The redirect URI associated with the request token.
         """
-        log.debug("OAuth1RequestValidator.get_redirect_uri(%r)", token_str)
+        log.debug("OAuth1RequestValidator.get_redirect_uri")
         tokenObj = self._get_RequestTokenObject(request, token_str)
         return tokenObj.redirect_uri
 
@@ -646,11 +638,7 @@ class OAuth1RequestValidator(RequestValidator):
 
         :returns: None
         """
-        log.debug(
-            "OAuth1RequestValidator.invalidate_request_token(%r, %r)",
-            client_key,
-            token_str,
-        )
+        log.debug("OAuth1RequestValidator.invalidate_request_token")
         self._api_hooks.request_token_invalidator(request, client_key, token_str)
 
     def validate_client_key(
@@ -687,11 +675,7 @@ class OAuth1RequestValidator(RequestValidator):
 
         :returns: True or False
         """
-        log.debug(
-            "OAuth1RequestValidator.validate_request_token(%r, %r)",
-            client_key,
-            token_str,
-        )
+        log.debug("OAuth1RequestValidator.validate_request_token")
         tok = self._get_RequestTokenObject(request, token_str, client_key=client_key)
         if tok and tok.client_key == client_key:
             return True
@@ -712,11 +696,7 @@ class OAuth1RequestValidator(RequestValidator):
 
         :returns: True or False
         """
-        log.debug(
-            "OAuth1RequestValidator.validate_access_token(%r, %r)",
-            client_key,
-            token_str,
-        )
+        log.debug("OAuth1RequestValidator.validate_access_token")
         tokenObj = request.access_token_object or self._api_hooks.access_token_getter(
             client_key=client_key, token_str=token_str
         )
@@ -794,11 +774,7 @@ class OAuth1RequestValidator(RequestValidator):
 
         :returns: True or False
         """
-        log.debug(
-            "OAuth1RequestValidator.validate_redirect_uri(%r, %r)",
-            client_key,
-            redirect_uri,
-        )
+        log.debug("OAuth1RequestValidator.validate_redirect_uri")
         self._api_hooks.ensure_request_client(request, client_key=client_key)
         if not request.client:
             return False
@@ -860,9 +836,7 @@ class OAuth1RequestValidator(RequestValidator):
 
         :returns: True or False
         """
-        log.debug(
-            "OAuth1RequestValidator.validate_realms(%r, %r)", client_key, token_str
-        )
+        log.debug("OAuth1RequestValidator.validate_realms")
         if request.access_token_object:
             tokenObj = request.access_token_object
         else:
@@ -891,12 +865,7 @@ class OAuth1RequestValidator(RequestValidator):
 
         :returns: True or False
         """
-        log.debug(
-            "OAuth1RequestValidator.validate_verifier(%r, %r, %r)",
-            client_key,
-            token_str,
-            verifier_str,
-        )
+        log.debug("OAuth1RequestValidator.validate_verifier")
         data = self._api_hooks.verifier_getter(
             verifier_str=verifier_str, token_str=token_str
         )
@@ -924,7 +893,7 @@ class OAuth1RequestValidator(RequestValidator):
 
         :returns: True or False
         """
-        log.debug("OAuth1RequestValidator.verify_request_token(%r)", token_str)
+        log.debug("OAuth1RequestValidator.verify_request_token")
         tokenObj = self._get_RequestTokenObject(request, token_str)
         if tokenObj:
             return True
@@ -945,7 +914,7 @@ class OAuth1RequestValidator(RequestValidator):
 
         :returns: True or False
         """
-        log.debug("OAuth1RequestValidator.verify_realms(%r, %r)", token_str, realms)
+        log.debug("OAuth1RequestValidator.verify_realms")
         tok = self._get_RequestTokenObject(request, token_str)
         if not tok:
             return False
@@ -971,7 +940,7 @@ class OAuth1RequestValidator(RequestValidator):
         * ``oauth_token_secret`` the token specific secret used in signing.
         * ``oauth_authorized_realms`` a space separated list of realms.
         """
-        log.debug("OAuth1RequestValidator.save_access_token(%r)", token_dict)
+        log.debug("OAuth1RequestValidator.save_access_token")
         self._api_hooks.access_token_setter(token_dict, request)
 
     def save_request_token(
@@ -995,7 +964,7 @@ class OAuth1RequestValidator(RequestValidator):
 
         Note: Client key can be obtained from ``request.client_key``.
         """
-        log.debug("OAuth1RequestValidator.save_request_token(%r)", token_dict)
+        log.debug("OAuth1RequestValidator.save_request_token")
         self._api_hooks.request_token_setter(token_dict, request)
 
     def save_verifier(
@@ -1023,9 +992,7 @@ class OAuth1RequestValidator(RequestValidator):
         Note that unlike save_x_token token here is the ``oauth_token`` token
         string from the request token saved previously.
         """
-        log.debug(
-            "OAuth1RequestValidator.save_verifier(%r, %r)", token_str, verifier_dict
-        )
+        log.debug("OAuth1RequestValidator.save_verifier")
         self._api_hooks.verifier_setter(
             token_str=token_str, verifier_dict=verifier_dict, request=request
         )

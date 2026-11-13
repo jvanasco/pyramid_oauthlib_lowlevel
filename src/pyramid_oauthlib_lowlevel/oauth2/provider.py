@@ -1,6 +1,5 @@
 # stdlib
 import logging
-import os
 from typing import Any
 from typing import Dict
 from typing import List
@@ -34,7 +33,6 @@ if TYPE_CHECKING:
 # from .. import utils
 # from .errors import MiscellaneousOAuth2Error
 
-DEBUG_LOGIC = bool(int(os.getenv("PYRAMID_OAUTHLIB_LOWLEVEL__DEBUG_LOGIC", 0)))
 log = logging.getLogger(__name__)
 
 
@@ -136,10 +134,6 @@ class OAuth2Provider(object):
             redirect_uri = self.pyramid_request.params.get(
                 "redirect_uri", self.error_uri
             )
-            log.debug(
-                "endpoint__validate_authorization_request GET:HEAD| Found redirect_uri %s.",
-                redirect_uri,
-            )
             try:
                 ret = self.server.validate_authorization_request(
                     uri, http_method, body, headers
@@ -149,11 +143,7 @@ class OAuth2Provider(object):
                 validity.update(credentials)
 
             except oauth2.FatalClientError as exc:
-                log.debug(
-                    "endpoint__validate_authorization_request GET:HEAD | Fatal client error %r",
-                    exc,
-                    exc_info=True,
-                )
+                log.debug("Authorization validation rejected: Fatal client error")
                 raise HTTPFound(exc.in_uri(self.error_uri))
 
             except oauth2.OAuth2Error as exc:
@@ -165,10 +155,10 @@ class OAuth2Provider(object):
                 raise HTTPFound(exc.in_uri(redirect_uri))
 
             except Exception as exc:
-                log.critical(
-                    "endpoint__validate_authorization_request GET:HEAD | %s", exc
-                )
-                raise HTTPFound(add_params_to_uri(self.error_uri, {"error": str(exc)}))
+                log.error("Authorization validation failed (%s)", type(exc).__name__)
+                raise HTTPFound(
+                    add_params_to_uri(self.error_uri, {"error": "server_error"})
+                ) from None
 
             return validity
         else:
@@ -197,9 +187,7 @@ class OAuth2Provider(object):
             response_type=params_source.get("response_type", None),
             state=params_source.get("state", None),
         )
-        log.debug("Fetched credentials from request %r.", credentials)
         redirect_uri = credentials.get("redirect_uri")
-        log.debug("Found redirect_uri %s.", redirect_uri)
 
         uri, http_method, body, headers = extract_params(self.pyramid_request)
         try:
@@ -210,21 +198,20 @@ class OAuth2Provider(object):
             return create_response(*ret)
 
         except oauth2.FatalClientError as exc:
-            log.debug("Fatal client error %r", exc, exc_info=True)
+            log.debug("Authorization confirmation rejected: Fatal client error")
             # return redirect(exc.in_uri(self.error_uri))
             return HTTPSeeOther(exc.in_uri(self.error_uri))
 
         except oauth2.OAuth2Error as exc:
-            log.debug("OAuth2Error: %r", exc, exc_info=True)
+            log.debug("Authorization confirmation rejected: OAuth2Error")
             # return redirect(exc.in_uri(redirect_uri or self.error_uri))
             return HTTPSeeOther(exc.in_uri(redirect_uri or self.error_uri))
 
         except Exception as exc:
-            log.critical(exc)
-            # return redirect(add_params_to_uri(
-            #    self.error_uri, {'error': str(exc)}
-            # ))
-            return HTTPSeeOther(add_params_to_uri(self.error_uri, {"error": str(exc)}))
+            log.error("Authorization confirmation failed (%s)", type(exc).__name__)
+            return HTTPSeeOther(
+                add_params_to_uri(self.error_uri, {"error": "server_error"})
+            )
 
     def endopoint__token(self, credentials=None) -> TYPES_RESPONSE:
         """
@@ -240,11 +227,13 @@ class OAuth2Provider(object):
             )
             log.debug("Authorization successful.")
             return create_response(*ret)
+        except oauth2.OAuth2Error as exc:
+            return self._oauth_error_response(exc)
         except Exception as exc:
-            if DEBUG_LOGIC:
-                print("> Exception", exc)
-            log.critical(exc)
-            return HTTPSeeOther(add_params_to_uri(self.error_uri, {"error": str(exc)}))
+            log.error("Token issuance failed (%s)", type(exc).__name__)
+            return HTTPSeeOther(
+                add_params_to_uri(self.error_uri, {"error": "server_error"})
+            )
 
     def endpoint__revoke_token(self) -> TYPES_RESPONSE:
         """
@@ -254,23 +243,30 @@ class OAuth2Provider(object):
         self._protected_post_only()
 
         uri, http_method, body, headers = extract_params(self.pyramid_request)
-        if DEBUG_LOGIC:
-            print("> endpoint__revoke_token >")
-            print("  >  uri ", uri)
-            print("  >  http_method ", http_method)
-            print("  >  body ", body)
-            print("  >  headers ", headers)
         try:
             ret = self.server.create_revocation_response(
                 uri, http_method, body, headers
             )
             log.debug("Revocation successful.")
             return create_response(*ret)
+        except oauth2.OAuth2Error as exc:
+            return self._oauth_error_response(exc)
         except Exception as exc:
-            if DEBUG_LOGIC:
-                print("> Exception", exc)
-            log.critical(exc)
-            return HTTPSeeOther(add_params_to_uri(self.error_uri, {"error": str(exc)}))
+            log.error("Token revocation failed (%s)", type(exc).__name__)
+            return HTTPSeeOther(
+                add_params_to_uri(self.error_uri, {"error": "server_error"})
+            )
+
+    @staticmethod
+    def _oauth_error_response(exc: oauth2.OAuth2Error) -> TYPES_RESPONSE:
+        """Serialize an OAuth error raised outside OAuthlib's response handling."""
+        headers = {
+            "Content-Type": "application/json",
+            "Cache-Control": "no-store",
+            "Pragma": "no-cache",
+        }
+        headers.update(exc.headers)
+        return create_response(headers, exc.json, exc.status_code)
 
     def verify_request(self, scopes: List[str]) -> Tuple[bool, oAuth_Request]:
         """

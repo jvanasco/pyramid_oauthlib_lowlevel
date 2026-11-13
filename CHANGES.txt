@@ -8,6 +8,9 @@
     * Retain OAuthlib 3.2.2 as the minimum. The OAuth flow suite passed with
       OAuthlib 3.2.2, 3.3.1, and 4.0.1 on Python 3.14.6. See TESTING.txt for
       the compatibility and typing findings.
+    * Require bearer tokens to include every scope required by the resource.
+    * Remove OAuth credentials from diagnostic output and use a generic
+      server_error for unexpected OAuth2 endpoint failures.
 
 0.5.0
     * some typing and codeqa changes
