@@ -40,3 +40,20 @@ Oauth1 Flow
 			oauth_token="`TOKEN_1`",
 			oauth_verifier="`TOKEN_2`",
 			oauth_signature="COMPUTED:signature"
+
+Nonce storage
+-------------
+
+The request-token and access-token requests include a signed nonce and
+timestamp. The storage hook must claim the nonce atomically, even when an
+earlier lookup found no match. Concurrent requests can both see the same
+lookup miss.
+
+Use a uniqueness constraint or atomic insert-if-absent operation in storage
+shared by the application workers. Use the same nonce identity for lookup
+and insertion, and retain the claim for as long as OAuthlib can accept the
+associated timestamp. Return `False` when the claim is rejected. Return
+`True` on success, or `None` for compatibility with legacy setters.
+
+The [SQLite example](../../tests/oauth1_utils.py) uses a unique nonce index
+and an insert that skips duplicates.
