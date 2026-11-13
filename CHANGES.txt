@@ -16,6 +16,8 @@
       success for tokens unavailable to the requesting client.
     * Verify OAuth2 authorization error redirect destinations and check grant
       ownership when the storage backend exposes the issuing client.
+    * Honor rejected OAuth1 nonce claims and document the atomic storage
+      requirement. The SQLite example uses a unique nonce index.
 
 0.5.0
     * some typing and codeqa changes

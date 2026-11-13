@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 # pypi
 import sqlalchemy
 import sqlalchemy.orm
+from sqlalchemy.dialects.sqlite import insert
 from typing_extensions import Literal
 
 # local
@@ -395,17 +396,8 @@ class CustomValidator_Hooks(OAuth1RequestValidator_Hooks):
         request: "oAuth_Request",
         request_token_str: Optional[str] = None,
         access_token_str: Optional[str] = None,
-    ):
-        """The timestamp will be expired in 60s, it would be a better design
-        if you put timestamp and nonce object in a cache.
-
-        The parameters are the same with :meth:`noncegetter`::
-
-        returns `None`
-
-        USED AT ENDPOINTS:
-            * request_token
-        """
+    ) -> bool:
+        """Claim a nonce using the example SQLite database's unique index."""
         self.ensure_request_client(request, client_key)
         if not request.client:
             return False
@@ -415,14 +407,19 @@ class CustomValidator_Hooks(OAuth1RequestValidator_Hooks):
             int(timestamp), tz=datetime.timezone.utc
         )
 
-        nonceObject = Developer_oAuth1Server_Nonce()
-        nonceObject.nonce = nonce
-        nonceObject.timestamp_created = datetime_created
-        nonceObject.developer_application_id = request.client.id
-        nonceObject.request_token = request_token_str
-        nonceObject.access_token = access_token_str
-        self.pyramid_request.dbSession.add(nonceObject)
-        self.pyramid_request.dbSession.flush()
+        claim = (
+            insert(Developer_oAuth1Server_Nonce.__table__)
+            .values(
+                nonce=nonce,
+                timestamp_created=datetime_created,
+                developer_application_id=request.client.id,
+                request_token=request_token_str,
+                access_token=access_token_str,
+            )
+            .on_conflict_do_nothing(index_elements=["nonce"])
+        )
+        result = self.pyramid_request.dbSession.connection().execute(claim)
+        return result.rowcount == 1
 
     #
     # verifier getter and setter

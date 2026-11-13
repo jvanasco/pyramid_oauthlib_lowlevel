@@ -248,21 +248,16 @@ class OAuth1RequestValidator_Hooks(object):
         request: oAuth_Request,
         request_token_str: Optional[str] = None,
         access_token_str: Optional[str] = None,
-    ):
-        """
-        The timestamp will be expired in 60s, it would be a better design
-        if you put timestamp and nonce object in a cache.
+    ) -> Optional[bool]:
+        """Atomically claim an unused nonce in shared storage.
 
-        You should check for the client
-            if not request.client:
-                return False
+        Use a uniqueness constraint or an atomic insert-if-absent operation
+        for the same nonce identity used by nonce_getter. Keep the claim for
+        as long as OAuthlib can accept the associated timestamp.
 
-        The parameters are the same with :method:`noncegetter`.
-
-        :returns: `None`
-
-        USED AT ENDPOINTS:
-            * request_token
+        Return False if the claim was rejected, including a concurrent
+        duplicate. Return True after claiming it. None is also accepted for
+        existing hooks that signal success by returning nothing.
         """
         raise NotImplementedError("Subclasses must implement this function.")
 
@@ -726,11 +721,8 @@ class OAuth1RequestValidator(RequestValidator):
 
         :returns: True or False
 
-        Logic:
-        1. Calls `self._api_hooks.nonce_getter` to see if the nonce has been used
-        2. If the nonce has been used, returns False
-        3. If the nonce has not been used, sets the nonce
-        4. Returns True
+        A lookup rejects known nonces early. The setter must still claim the
+        nonce atomically because another request may pass the same lookup.
         """
         log.debug(
             "OAuth1RequestValidator.validate_timestamp_and_nonce(%r, %r, %r)",
@@ -748,7 +740,7 @@ class OAuth1RequestValidator(RequestValidator):
         )
         if nonce_exists:
             return False
-        self._api_hooks.nonce_setter(
+        claimed = self._api_hooks.nonce_setter(
             client_key=client_key,
             timestamp=timestamp,
             nonce=nonce,
@@ -756,7 +748,7 @@ class OAuth1RequestValidator(RequestValidator):
             request_token_str=request_token,
             access_token_str=access_token,
         )
-        return True
+        return claimed is not False
 
     def validate_redirect_uri(
         self,

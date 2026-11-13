@@ -3,16 +3,20 @@ import re
 from typing import Tuple
 from typing import TYPE_CHECKING
 import unittest
+from unittest.mock import Mock
+from unittest.mock import patch
 from urllib.parse import parse_qsl
 
 # pypi
 import requests
+from oauthlib.common import Request as OAuthRequest
 import responses
 import sqlalchemy
 from webtest import TestApp
 
 # local
 from pyramid_oauthlib_lowlevel.utils import string_headers
+from pyramid_oauthlib_lowlevel.oauth1.validator import OAuth1RequestValidator
 from . import oauth1_model
 from . import oauth1_utils
 from ._utils import FakeRequest
@@ -70,6 +74,43 @@ def new_req_session_bad() -> FakeRequest:
     req = FakeRequest()
     req.dbSession = saSession
     return req
+
+
+def test_nonce_claim_rejects_duplicate_after_stale_lookup() -> None:
+    """Exercise the uniqueness check when two requests both see a lookup miss."""
+    engine, session = sa_init_sessionmaker()
+    try:
+        pyramid_request = Mock(registry=Mock(settings={}), dbSession=session)
+        hooks = oauth1_utils.CustomValidator_Hooks(pyramid_request)
+        validator = OAuth1RequestValidator(pyramid_request, hooks)
+        with patch.object(hooks, "nonce_getter", return_value=False):
+            for accepted in (True, False):
+                request = OAuthRequest("https://example.invalid/oauth")
+                assert (
+                    validator.validate_timestamp_and_nonce(
+                        oauth1_model.OAUTH1__APP_KEY,
+                        "1700000000",
+                        "synthetic-nonce",
+                        request,
+                    )
+                    is accepted
+                )
+        assert session.query(oauth1_model.Developer_oAuth1Server_Nonce).count() == 1
+    finally:
+        session.close()
+        engine.dispose()
+
+
+def test_nonce_claim_accepts_legacy_none_result() -> None:
+    """Preserve success for existing setters that return None after insertion."""
+    hooks = Mock()
+    hooks.nonce_getter.return_value = False
+    hooks.nonce_setter.return_value = None
+    validator = OAuth1RequestValidator(Mock(registry=Mock(settings={})), hooks)
+    request = OAuthRequest("https://example.invalid/oauth")
+    assert validator.validate_timestamp_and_nonce(
+        "client", "1700000000", "nonce", request
+    )
 
 
 class PyramidTestApp(unittest.TestCase):
