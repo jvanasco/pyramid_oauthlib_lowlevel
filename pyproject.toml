@@ -23,8 +23,10 @@ module = [
 ignore_missing_imports = true
 
 
-[tool.pytest.ini_options]
+[tool.pytest]
+[[tool.pytest.ini_options]]
 
-filterwarnings =
-    ignore: pkg_resources is deprecated as an API.: UserWarning
-    ignore: Deprecated call to `pkg_resources.declare_namespace: DeprecationWarning
+filterwarnings = [
+    'ignore:pkg_resources is deprecated as an API\.:UserWarning',
+    'ignore:Deprecated call to `pkg_resources\.declare_namespace:DeprecationWarning',
+]
