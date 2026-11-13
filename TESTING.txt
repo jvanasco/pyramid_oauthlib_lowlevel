@@ -30,6 +30,27 @@ Debug messages have an initial character indicating what file they are from:
     >> - src/pyramid_oauthlib_lowlevel/oauth2/validator.py
 
 
+OAuthlib compatibility for 1.0.0
+================================
+
+The six existing OAuth flow tests passed on Python 3.14.6 with OAuthlib
+3.2.2, 3.3.1, and 4.0.1 tested separately. The minimum remains 3.2.2.
+These runs validate the covered flows on Python 3.14.6.
+
+In a separate check of OAuthlib's default OAuth2 server, all three versions
+returned 400 unsupported_grant_type when grant_type was missing and
+401 invalid_client when client authentication was rejected for authorization
+code, refresh token, and password grants. OAuthlib 4 removed the JSONP
+revocation arguments. The standard revocation path in this package uses
+neither argument. Custom server integrations may depend on them.
+
+OAuthlib 4.0.1 ships without bundled type stubs or a py.typed marker.
+With types-oauthlib 4.0.0.20261107 installed, mypy resolved the OAuthlib
+imports and reported 24 remaining diagnostics. The stubs annotate the
+OAuth1 save_request_token and save_access_token token arguments as str,
+while OAuthlib passes dictionaries to those callbacks.
+
+
 FLAKE8
 ======
 

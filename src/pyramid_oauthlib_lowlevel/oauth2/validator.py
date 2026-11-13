@@ -266,8 +266,12 @@ class OAuth2RequestValidator_Hooks(object):
 
 
 class OAuth2RequestValidator(RequestValidator):
-    """
-    Validator Integration
+    """Connect OAuthlib's base OAuth2 validator to Pyramid application hooks.
+
+    OAuthlib defines get_authorization_code_scopes, get_jwt_bearer_token,
+    validate_jwt_bearer_token, get_id_token, and validate_id_token on its
+    OpenID Connect validator (oauthlib.openid.connect.core.RequestValidator).
+    They apply to integrations that use the OpenID Connect endpoints.
     """
 
     pyramid_request: Pyramid_Request
